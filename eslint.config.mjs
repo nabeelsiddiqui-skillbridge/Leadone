@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Not part of the Next.js app: separate deployable services with their
+    // own tsconfig/lint setup, and nested git worktrees used by parallel
+    // subagents during development.
+    "services/**",
+    ".claude/**",
   ]),
 ]);
 

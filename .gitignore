@@ -48,3 +48,6 @@ services/realtime-voice/dist
 # supabase local
 supabase/.branches
 supabase/.temp
+
+# nested agent worktrees
+.claude/worktrees/
