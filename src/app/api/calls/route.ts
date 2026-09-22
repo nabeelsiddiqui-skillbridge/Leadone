@@ -5,6 +5,7 @@ import { requireCurrentWorkspace } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { placeCall } from "@/lib/place-call";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -57,6 +58,17 @@ export async function POST(request: Request) {
     const { workspace } = await requireCurrentWorkspace();
     workspaceId = workspace.id;
     supabase = await createClient();
+
+    // The campaign worker's own pacing (concurrency_limit/daily_call_limit)
+    // already governs its call volume; this limits a workspace's own
+    // manual/test-call usage of this endpoint against a runaway client loop.
+    const rateLimit = checkRateLimit(`place-call:${workspace.id}`, 30, 60);
+    if (!rateLimit.ok) {
+      return NextResponse.json(
+        { error: `Too many calls placed too quickly. Try again in ${rateLimit.retryAfterSeconds}s.` },
+        { status: 429 }
+      );
+    }
   }
 
   const result = await placeCall(supabase, {

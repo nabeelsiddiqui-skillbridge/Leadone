@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { rateLimitOrMessage } from "@/lib/rate-limit";
 
 export interface AuthActionState {
   error?: string;
@@ -13,6 +14,9 @@ export async function signUpAction(
   _prevState: AuthActionState,
   formData: FormData
 ): Promise<AuthActionState> {
+  const rateLimitError = await rateLimitOrMessage("sign-up", 10, 60 * 60);
+  if (rateLimitError) return { error: rateLimitError };
+
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const fullName = String(formData.get("full_name") ?? "").trim();
@@ -46,6 +50,12 @@ export async function signInAction(
   _prevState: AuthActionState,
   formData: FormData
 ): Promise<AuthActionState> {
+  // Generous-but-real limit: stops a credential-stuffing loop against a
+  // single IP without locking out someone who just mistyped their password
+  // a few times.
+  const rateLimitError = await rateLimitOrMessage("sign-in", 20, 5 * 60);
+  if (rateLimitError) return { error: rateLimitError };
+
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const next = String(formData.get("next") ?? "/dashboard");
@@ -70,6 +80,9 @@ export async function forgotPasswordAction(
   _prevState: AuthActionState,
   formData: FormData
 ): Promise<AuthActionState> {
+  const rateLimitError = await rateLimitOrMessage("forgot-password", 5, 15 * 60);
+  if (rateLimitError) return { error: rateLimitError };
+
   const email = String(formData.get("email") ?? "").trim();
   if (!email) return { error: "Email is required." };
 
