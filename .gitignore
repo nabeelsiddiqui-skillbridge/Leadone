@@ -41,9 +41,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# services
-services/realtime-voice/node_modules
-services/realtime-voice/dist
+# services (each is its own deployable Node project)
+services/*/node_modules
+services/*/dist
 
 # supabase local
 supabase/.branches
