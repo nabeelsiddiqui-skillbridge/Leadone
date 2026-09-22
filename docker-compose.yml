@@ -1,0 +1,45 @@
+# Local development helper for the two long-running services and the Redis
+# instance they need. It does NOT run the Next.js app or Supabase - run
+# `npm run dev` for the app, and either `supabase start` (local Postgres)
+# or a real Supabase project for the database, per the main README.
+#
+# Usage:
+#   docker compose up --build
+#
+# Both services read their configuration from .env files in their own
+# directories (services/realtime-voice/.env, services/campaign-worker/.env)
+# - copy .env.example at the repo root into each and fill in real values
+# first. APP_INTERNAL_URL / TWILIO_WEBHOOK_BASE_URL / REALTIME_WEBSOCKET_URL
+# need to point at wherever the Next.js app is actually reachable from
+# these containers (host.docker.internal:3000 when running the app with
+# `npm run dev` on the host machine, for example).
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  realtime-voice:
+    build: ./services/realtime-voice
+    env_file:
+      - ./services/realtime-voice/.env
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  campaign-worker:
+    build: ./services/campaign-worker
+    env_file:
+      - ./services/campaign-worker/.env
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
