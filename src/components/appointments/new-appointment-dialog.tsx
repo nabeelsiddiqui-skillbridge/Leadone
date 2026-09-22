@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
+import { useRef, useState, useTransition, type FormEvent } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -53,18 +53,14 @@ export function NewAppointmentDialog({
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const [timezone, setTimezone] = useState("");
-  const formRef = useRef<HTMLFormElement>(null);
-
-  useEffect(() => {
-    if (!open || timezone) return;
+  const [timezone, setTimezone] = useState(() => {
     try {
-      setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+      return Intl.DateTimeFormat().resolvedOptions().timeZone;
     } catch {
-      setTimezone("UTC");
+      return "UTC";
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  });
+  const formRef = useRef<HTMLFormElement>(null);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

@@ -85,7 +85,7 @@ export function AddContentDialog({ knowledgeBaseId }: { knowledgeBaseId: string 
         <DialogHeader>
           <DialogTitle>Add content</DialogTitle>
           <DialogDescription>
-            Add a document to this knowledge base. It's chunked and embedded automatically so agents can
+            Add a document to this knowledge base. It&apos;s chunked and embedded automatically so agents can
             search it during calls.
           </DialogDescription>
         </DialogHeader>

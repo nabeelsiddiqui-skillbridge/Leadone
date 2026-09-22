@@ -24,7 +24,7 @@ const SCOPES = [
  * requireCurrentWorkspace() and only uses `state` as a CSRF check, rejecting
  * the callback if the two don't match.
  */
-export async function GET(request: Request) {
+export async function GET() {
   const { workspace } = await requireCurrentWorkspace();
 
   const oauth2Client = new google.auth.OAuth2(

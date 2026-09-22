@@ -15,6 +15,9 @@ import { AppointmentRowActions } from "@/components/appointments/appointment-row
 import { CallbackRowActions } from "@/components/appointments/callback-row-actions";
 import { AppointmentStatusBadge, CallbackStatusBadge } from "@/components/appointments/status-badges";
 import { NewAppointmentDialog } from "@/components/appointments/new-appointment-dialog";
+import type { AppointmentStatus, Database } from "@/lib/supabase/database.types";
+
+type CallbackStatus = Database["public"]["Tables"]["callbacks"]["Row"]["status"];
 
 export const metadata: Metadata = { title: "Appointments" };
 
@@ -91,7 +94,7 @@ export default async function AppointmentsPage({
     .order("starts_at", { ascending: false })
     .limit(200);
 
-  if (params.status) appointmentsQuery = appointmentsQuery.eq("status", params.status);
+  if (params.status) appointmentsQuery = appointmentsQuery.eq("status", params.status as AppointmentStatus);
   if (params.from) appointmentsQuery = appointmentsQuery.gte("starts_at", params.from);
   if (params.to) appointmentsQuery = appointmentsQuery.lte("starts_at", params.to);
 
@@ -104,7 +107,7 @@ export default async function AppointmentsPage({
     .order("requested_for", { ascending: false })
     .limit(200);
 
-  if (params.cbStatus) callbacksQuery = callbacksQuery.eq("status", params.cbStatus);
+  if (params.cbStatus) callbacksQuery = callbacksQuery.eq("status", params.cbStatus as CallbackStatus);
 
   const [{ data: appointments }, { data: callbacks }] = await Promise.all([
     appointmentsQuery,
