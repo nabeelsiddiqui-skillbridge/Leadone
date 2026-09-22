@@ -7,12 +7,23 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PhoneCall, Users, CalendarClock, TrendingUp } from "lucide-react";
 import Link from "next/link";
+import { CallsOverTimeChart, type DailyPoint } from "@/components/analytics/calls-over-time-chart";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
 function startOfToday() {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+
+function dayKey(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function daysAgo(days: number) {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
   return d.toISOString();
 }
 
@@ -67,6 +78,22 @@ export default async function DashboardPage() {
       .limit(8),
   ]);
 
+  const { data: recentCallsForChart } = await supabase
+    .from("calls")
+    .select("created_at, appointment_id")
+    .eq("workspace_id", workspace.id)
+    .gte("created_at", daysAgo(14));
+
+  const dailyMap = new Map<string, DailyPoint>();
+  for (const call of recentCallsForChart ?? []) {
+    const key = dayKey(new Date(call.created_at));
+    const point = dailyMap.get(key) ?? { date: key, calls: 0, appointments: 0 };
+    point.calls += 1;
+    if (call.appointment_id) point.appointments += 1;
+    dailyMap.set(key, point);
+  }
+  const dailySeries = Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+
   const conversionRate =
     totalCalls && appointmentsBooked ? ((appointmentsBooked / totalCalls) * 100).toFixed(1) : "0.0";
 
@@ -115,6 +142,26 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
         <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">Calls &amp; Appointments (14 days)</CardTitle>
+            <CardDescription>
+              <Link href="/analytics" className="hover:underline">
+                See full analytics →
+              </Link>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {dailySeries.length === 0 ? (
+              <p className="py-10 text-center text-sm text-muted-foreground">No calls in the last 14 days.</p>
+            ) : (
+              <CallsOverTimeChart data={dailySeries} />
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-3">
           <CardHeader>
             <CardTitle className="text-base">Recent Calls</CardTitle>
             <CardDescription>Latest activity across all campaigns</CardDescription>

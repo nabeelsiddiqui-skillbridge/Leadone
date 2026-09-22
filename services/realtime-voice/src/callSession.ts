@@ -226,6 +226,14 @@ export class CallSession {
       }
     });
 
+    this.openai.on("usage", (usage: Record<string, unknown>) => {
+      // Persisted per response rather than accumulated in memory so a crash
+      // never loses usage data already billed by OpenAI; the usage rollup
+      // (src/lib/pricing.ts + /api/cron/rollup-usage in the Next app) sums
+      // these call_events rows per workspace/day.
+      this.logEvent("openai_usage", usage);
+    });
+
     this.openai.on("error", (err: unknown) => {
       this.logEvent("openai_error", { error: err });
     });

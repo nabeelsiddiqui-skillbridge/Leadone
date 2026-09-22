@@ -182,9 +182,12 @@ export class OpenAIRealtimeSession extends EventEmitter {
         break;
       }
 
-      case "response.done":
+      case "response.done": {
+        const usage = (event as { response?: { usage?: Record<string, unknown> } }).response?.usage;
+        if (usage) this.emit("usage", usage);
         this.emit("responseDone");
         break;
+      }
 
       case "error":
         this.emit("error", event.error ?? event);
