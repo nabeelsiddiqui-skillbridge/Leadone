@@ -16,6 +16,22 @@ interface CalendarConnectionRow {
   status: string;
 }
 
+// Token storage shape: calendar_connections has a single `token_iv` column
+// shared by both `access_token_ciphertext` and `refresh_token_ciphertext`.
+// AES-256-GCM requires a given (key, iv) pair never encrypt two different
+// plaintexts, so encrypting the access and refresh tokens separately while
+// sharing one iv would be a latent nonce-reuse bug. The OAuth callback (see
+// src/app/api/integrations/google-calendar/callback/route.ts in the Next.js
+// app) instead encrypts ONE combined JSON string,
+// `{ access_token, refresh_token }`, as a single plaintext/iv pair, storing
+// it in `access_token_ciphertext` + `token_iv` and leaving
+// `refresh_token_ciphertext` null. Mirror that here: decrypt the combined
+// value and JSON.parse it instead of decrypting two fields separately.
+interface StoredGoogleTokens {
+  access_token: string;
+  refresh_token?: string;
+}
+
 async function getGoogleClient(workspaceId: string) {
   const { data: connection } = await db
     .from("calendar_connections")
@@ -34,20 +50,30 @@ async function getGoogleClient(workspaceId: string) {
   if (!clientId || !clientSecret) return null;
 
   const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
-  const accessToken = decryptSecret(connection.access_token_ciphertext, connection.token_iv);
-  const refreshToken = connection.refresh_token_ciphertext
-    ? decryptSecret(connection.refresh_token_ciphertext, connection.token_iv)
-    : undefined;
+
+  let storedTokens: StoredGoogleTokens;
+  try {
+    storedTokens = JSON.parse(
+      decryptSecret(connection.access_token_ciphertext, connection.token_iv)
+    ) as StoredGoogleTokens;
+  } catch {
+    return null;
+  }
 
   oauth2Client.setCredentials({
-    access_token: accessToken,
-    refresh_token: refreshToken,
+    access_token: storedTokens.access_token,
+    refresh_token: storedTokens.refresh_token,
     expiry_date: connection.expires_at ? new Date(connection.expires_at).getTime() : undefined,
   });
 
   oauth2Client.on("tokens", async (tokens) => {
     if (!tokens.access_token) return;
-    const encrypted = encryptSecret(tokens.access_token);
+    const encrypted = encryptSecret(
+      JSON.stringify({
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token ?? storedTokens.refresh_token,
+      })
+    );
     await db
       .from("calendar_connections")
       .update({
