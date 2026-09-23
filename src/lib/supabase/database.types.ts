@@ -353,6 +353,7 @@ export interface Database {
       campaign_attempts: {
         Row: {
           id: string;
+          workspace_id: string;
           campaign_id: string;
           contact_id: string;
           call_id: string | null;
@@ -361,6 +362,7 @@ export interface Database {
           attempted_at: string;
         };
         Insert: Partial<Database["public"]["Tables"]["campaign_attempts"]["Row"]> & {
+          workspace_id: string;
           campaign_id: string;
           contact_id: string;
           attempt_number: number;

@@ -67,7 +67,7 @@ export async function recordCallCompletion(params: {
   contactId: string | null;
   twilioStatus: string;
 }): Promise<void> {
-  const { callId, campaignId, contactId, twilioStatus } = params;
+  const { callId, workspaceId, campaignId, contactId, twilioStatus } = params;
   const db = createServiceRoleClient();
   const outcome = TWILIO_STATUS_TO_OUTCOME[twilioStatus] ?? twilioStatus;
 
@@ -86,6 +86,7 @@ export async function recordCallCompletion(params: {
   const decision = decideNextCampaignContactState(campaign, campaignContact.attempts, outcome);
 
   await db.from("campaign_attempts").insert({
+    workspace_id: workspaceId,
     campaign_id: campaignId,
     contact_id: contactId,
     call_id: callId,

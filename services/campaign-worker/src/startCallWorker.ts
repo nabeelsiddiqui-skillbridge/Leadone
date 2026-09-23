@@ -55,6 +55,7 @@ async function handleStartCall(job: Job<PlaceCallJobData>) {
 
       if (data.campaignId) {
         await db.from("campaign_attempts").insert({
+          workspace_id: data.workspaceId,
           campaign_id: data.campaignId,
           contact_id: data.contactId,
           attempt_number: attempts,

@@ -301,6 +301,7 @@ create index campaign_contacts_dialable_idx
 
 create table public.campaign_attempts (
   id uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references public.workspaces (id) on delete cascade,
   campaign_id uuid not null references public.campaigns (id) on delete cascade,
   contact_id uuid not null references public.contacts (id) on delete cascade,
   call_id uuid,
@@ -308,6 +309,8 @@ create table public.campaign_attempts (
   outcome text,
   attempted_at timestamptz not null default now()
 );
+
+create index campaign_attempts_workspace_idx on public.campaign_attempts (workspace_id);
 
 -- ---------------------------------------------------------------------------
 -- Calendar connections & appointments
