@@ -28,7 +28,7 @@ export interface CreateCampaignPayload {
   phoneNumberId: string | null;
   existingContactIds: string[];
   newLeads: NewLeadPayload[];
-  timezoneMode: "contact_local" | "fixed";
+  timezoneMode: "contact_local" | "fixed" | "always";
   fixedTimezone: string | null;
   daysOfWeek: number[];
   callingStartTime: string;

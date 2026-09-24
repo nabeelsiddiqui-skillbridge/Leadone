@@ -53,7 +53,17 @@ export function StepSchedule({
             <RadioGroupItem value="fixed" id="tz-fixed" />
             Fixed timezone
           </label>
+          <label className="flex items-center gap-2 text-sm font-normal">
+            <RadioGroupItem value="always" id="tz-always" />
+            Start calling instantly (ignore calling hours)
+          </label>
         </RadioGroup>
+        {state.timezoneMode === "always" && (
+          <p className="text-xs text-muted-foreground">
+            The worker will dial as fast as your concurrency and daily limits allow, any day, any hour —
+            days of week and the calling window below are ignored.
+          </p>
+        )}
         {state.timezoneMode === "fixed" && (
           <Select value={state.fixedTimezone} onValueChange={(value) => update({ fixedTimezone: value })}>
             <SelectTrigger className="mt-2 w-full max-w-xs">
@@ -70,7 +80,7 @@ export function StepSchedule({
         )}
       </div>
 
-      <div className="grid gap-2">
+      <div className={`grid gap-2 ${state.timezoneMode === "always" ? "pointer-events-none opacity-50" : ""}`}>
         <Label>Days of week</Label>
         <div className="flex flex-wrap gap-4">
           {DAY_LABELS.map((label, day) => (
@@ -78,6 +88,7 @@ export function StepSchedule({
               <Checkbox
                 checked={state.daysOfWeek.includes(day)}
                 onCheckedChange={(checked) => toggleDay(day, checked === true)}
+                disabled={state.timezoneMode === "always"}
               />
               {label}
             </label>
@@ -86,22 +97,24 @@ export function StepSchedule({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="grid gap-2">
+        <div className={`grid gap-2 ${state.timezoneMode === "always" ? "pointer-events-none opacity-50" : ""}`}>
           <Label htmlFor="calling-start-time">Calling window start</Label>
           <Input
             id="calling-start-time"
             type="time"
             value={state.callingStartTime}
             onChange={(e) => update({ callingStartTime: e.target.value })}
+            disabled={state.timezoneMode === "always"}
           />
         </div>
-        <div className="grid gap-2">
+        <div className={`grid gap-2 ${state.timezoneMode === "always" ? "pointer-events-none opacity-50" : ""}`}>
           <Label htmlFor="calling-end-time">Calling window end</Label>
           <Input
             id="calling-end-time"
             type="time"
             value={state.callingEndTime}
             onChange={(e) => update({ callingEndTime: e.target.value })}
+            disabled={state.timezoneMode === "always"}
           />
         </div>
         <div className="grid gap-2">

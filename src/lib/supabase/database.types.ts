@@ -288,7 +288,7 @@ export interface Database {
           name: string;
           description: string | null;
           status: CampaignStatus;
-          timezone_mode: "contact_local" | "fixed";
+          timezone_mode: "contact_local" | "fixed" | "always";
           fixed_timezone: string | null;
           days_of_week: number[];
           calling_start_time: string;

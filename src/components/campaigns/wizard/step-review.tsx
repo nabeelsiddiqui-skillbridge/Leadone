@@ -77,10 +77,20 @@ export function StepReview({
           <CardContent className="flex flex-col gap-0.5">
             <SummaryRow
               label="Timezone"
-              value={state.timezoneMode === "fixed" ? state.fixedTimezone : "Contact local time"}
+              value={
+                state.timezoneMode === "always"
+                  ? "Instant (ignores hours)"
+                  : state.timezoneMode === "fixed"
+                    ? state.fixedTimezone
+                    : "Contact local time"
+              }
             />
-            <SummaryRow label="Days" value={days || "None selected"} />
-            <SummaryRow label="Window" value={`${state.callingStartTime} – ${state.callingEndTime}`} />
+            {state.timezoneMode !== "always" && (
+              <>
+                <SummaryRow label="Days" value={days || "None selected"} />
+                <SummaryRow label="Window" value={`${state.callingStartTime} – ${state.callingEndTime}`} />
+              </>
+            )}
             <SummaryRow label="Start date" value={state.startDate || "Immediately"} />
             <SummaryRow label="End date" value={state.endDate || "No end date"} />
             <SummaryRow label="Daily limit" value={state.dailyCallLimit} />

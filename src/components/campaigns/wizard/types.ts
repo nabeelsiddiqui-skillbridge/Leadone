@@ -41,7 +41,7 @@ export interface WizardState {
   phoneNumberId: string | null;
   selectedContactIds: string[];
   newLeads: NewLeadDraft[];
-  timezoneMode: "contact_local" | "fixed";
+  timezoneMode: "contact_local" | "fixed" | "always";
   fixedTimezone: string;
   daysOfWeek: number[];
   callingStartTime: string;

@@ -73,6 +73,9 @@ export async function scanCampaignsOnce(queue: Queue<PlaceCallJobData>): Promise
   let enqueued = 0;
 
   for (const campaign of (campaigns ?? []) as CampaignRow[]) {
+    // "always" matches neither branch below, so it's dialable at any hour on
+    // any day - the intentional bypass for a campaign that should start
+    // calling immediately instead of waiting for a calling-hours window.
     if (campaign.timezone_mode === "fixed") {
       const tz = resolveTimezone(campaign, null);
       if (!tz || !isWithinCallingWindow(campaign, tz)) continue;

@@ -4,7 +4,7 @@ export interface CallingWindow {
   calling_end_time: string;
   start_date: string | null;
   end_date: string | null;
-  timezone_mode: "contact_local" | "fixed";
+  timezone_mode: "contact_local" | "fixed" | "always";
   fixed_timezone: string | null;
 }
 
