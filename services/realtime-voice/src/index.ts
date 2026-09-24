@@ -21,32 +21,29 @@ const wss = new WebSocketServer({ server: httpServer, path: "/media-stream" });
 wss.on("connection", (ws) => {
   // Twilio's Media Streams product does not reliably forward query
   // parameters on the <Stream> connection url, so callId travels instead as
-  // a <Parameter> the voice webhook attaches - delivered here as
-  // start.customParameters on the very first message Twilio sends on this
-  // socket. Everything downstream (CallSession) waits for that.
+  // a <Parameter> the voice webhook attaches - delivered here in
+  // start.customParameters. Twilio's message sequence on a fresh socket is
+  // "connected" first, then "start" - so this waits (up to a timeout) for
+  // "start" specifically rather than treating the first message as it.
   const timeout = setTimeout(() => {
+    ws.off("message", onMessage);
     console.error("Rejected media stream connection: no start event within timeout");
     ws.close(1008, "no start event");
   }, START_EVENT_TIMEOUT_MS);
 
-  const onFirstMessage = async (raw: WebSocket.RawData) => {
-    ws.off("message", onFirstMessage);
-    clearTimeout(timeout);
-
-    let message: Partial<TwilioStartMessage>;
+  const onMessage = async (raw: WebSocket.RawData) => {
+    let message: { event?: string; start?: TwilioStartMessage["start"] };
     try {
       message = JSON.parse(raw.toString());
     } catch {
-      console.error("Rejected media stream connection: first message was not valid JSON");
-      ws.close(1008, "invalid start message");
-      return;
+      return; // not JSON - ignore rather than fail the whole connection over one bad frame
     }
 
-    if (message.event !== "start" || !message.start) {
-      console.error(`Rejected media stream connection: first event was "${message.event}", expected "start"`);
-      ws.close(1008, "expected start event first");
-      return;
-    }
+    if (message.event === "connected") return; // expected preamble, nothing to do with it
+    if (message.event !== "start" || !message.start) return; // keep waiting for "start"
+
+    ws.off("message", onMessage);
+    clearTimeout(timeout);
 
     const callId = message.start.customParameters?.callId;
     if (!callId) {
@@ -68,7 +65,7 @@ wss.on("connection", (ws) => {
     }
   };
 
-  ws.on("message", onFirstMessage);
+  ws.on("message", onMessage);
 });
 
 httpServer.listen(config.port, () => {
