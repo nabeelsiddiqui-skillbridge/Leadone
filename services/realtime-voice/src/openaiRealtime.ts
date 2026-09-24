@@ -43,13 +43,17 @@ export class OpenAIRealtimeSession extends EventEmitter {
       });
 
       this.ws.once("open", () => {
+        console.log(`OpenAI realtime socket open (model=${config.defaultRealtimeModel})`);
         this.sendSessionUpdate(options);
         resolve();
       });
-      this.ws.once("error", (err) => reject(err));
+      this.ws.once("error", (err) => {
+        console.error(`OpenAI realtime socket failed to open (model=${config.defaultRealtimeModel}):`, err);
+        reject(err);
+      });
 
       this.ws.on("message", (raw) => this.handleMessage(raw));
-      this.ws.on("close", () => this.emit("close"));
+      this.ws.on("close", (code, reason) => this.emit("close", code, reason?.toString() ?? ""));
       this.ws.on("error", (err) => this.emit("error", err));
     });
   }

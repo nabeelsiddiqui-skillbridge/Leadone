@@ -172,6 +172,7 @@ export class CallSession {
 
   private wireOpenAIEvents() {
     this.openai.on("sessionCreated", (id: string) => {
+      console.log(`[call ${this.state.callId}] OpenAI realtime session created: ${id}`);
       this.state.openaiSessionId = id;
       db.from("calls").update({ openai_session_id: id }).eq("id", this.state.callId).then(() => {});
     });
@@ -237,10 +238,13 @@ export class CallSession {
     });
 
     this.openai.on("error", (err: unknown) => {
+      console.error(`[call ${this.state.callId}] OpenAI realtime error:`, err);
       this.logEvent("openai_error", { error: err });
     });
 
-    this.openai.on("close", () => {
+    this.openai.on("close", (code?: number, reason?: string) => {
+      console.log(`[call ${this.state.callId}] OpenAI realtime socket closed (code=${code}, reason=${reason || "none"})`);
+      this.logEvent("openai_close", { code, reason });
       if (!this.finalized) this.finalize(this.state.outcome ?? "error");
     });
   }
