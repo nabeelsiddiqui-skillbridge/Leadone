@@ -6,7 +6,7 @@ import { scanCallbacksOnce } from "./callbackScanner.js";
 import { startCallWorker } from "./startCallWorker.js";
 import type { PlaceCallJobData } from "./placeCall.js";
 
-const queue = new Queue<PlaceCallJobData>("leadone:start_call", {
+const queue = new Queue<PlaceCallJobData>("leadone-start-call", {
   connection: { url: config.redisUrl },
 });
 

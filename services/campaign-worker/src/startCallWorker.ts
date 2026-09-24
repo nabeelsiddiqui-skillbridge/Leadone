@@ -69,7 +69,7 @@ async function handleStartCall(job: Job<PlaceCallJobData>) {
 }
 
 export function startCallWorker() {
-  return new Worker<PlaceCallJobData>("leadone:start_call", handleStartCall, {
+  return new Worker<PlaceCallJobData>("leadone-start-call", handleStartCall, {
     connection: { url: config.redisUrl },
     concurrency: 10,
   });
