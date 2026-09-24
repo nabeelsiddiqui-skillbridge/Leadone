@@ -34,11 +34,14 @@ export class OpenAIRealtimeSession extends EventEmitter {
 
   connect(options: RealtimeSessionOptions): Promise<void> {
     return new Promise((resolve, reject) => {
+      // No "OpenAI-Beta: realtime=v1" header - that activates OpenAI's now-
+      // retired beta protocol shape (removed 2026-05-07; the API rejects it
+      // with error code "beta_api_shape_disabled"). Plain /v1/realtime with
+      // just the model query param is the current GA connection.
       const url = `wss://api.openai.com/v1/realtime?model=${encodeURIComponent(config.defaultRealtimeModel)}`;
       this.ws = new WebSocket(url, {
         headers: {
           Authorization: `Bearer ${config.openaiApiKey}`,
-          "OpenAI-Beta": "realtime=v1",
         },
       });
 
@@ -65,22 +68,35 @@ export class OpenAIRealtimeSession extends EventEmitter {
   }
 
   private sendSessionUpdate(options: RealtimeSessionOptions) {
+    // GA session shape (see node_modules/openai/src/resources/realtime/realtime.ts
+    // RealtimeSessionCreateRequest): requires session.type, nests audio config
+    // under audio.input/audio.output (each with an object `format`, not the old
+    // flat "g711_ulaw" string), renames modalities -> output_modalities (and
+    // audio+text together is no longer offered - "audio" alone already
+    // includes a transcript), and drops the old top-level `temperature` field
+    // entirely (not part of the GA session schema).
     this.send({
       type: "session.update",
       session: {
-        modalities: ["audio", "text"],
+        type: "realtime",
         instructions: options.instructions,
-        voice: options.voice,
-        input_audio_format: "g711_ulaw",
-        output_audio_format: "g711_ulaw",
-        input_audio_transcription: { model: "whisper-1" },
-        turn_detection: {
-          type: "server_vad",
-          threshold: 0.5,
-          prefix_padding_ms: 300,
-          silence_duration_ms: 500,
+        output_modalities: ["audio"],
+        audio: {
+          input: {
+            format: { type: "audio/pcmu" },
+            transcription: { model: "whisper-1" },
+            turn_detection: {
+              type: "server_vad",
+              threshold: 0.5,
+              prefix_padding_ms: 300,
+              silence_duration_ms: 500,
+            },
+          },
+          output: {
+            format: { type: "audio/pcmu" },
+            voice: options.voice,
+          },
         },
-        temperature: Math.min(Math.max(options.temperature, 0.6), 1.2), // Realtime API's accepted range is narrower than the 0-1 UI dial.
         tools: options.toolsEnabled ? TOOL_DEFINITIONS : [],
         tool_choice: options.toolsEnabled ? "auto" : "none",
       },
@@ -108,7 +124,9 @@ export class OpenAIRealtimeSession extends EventEmitter {
       item: {
         type: "message",
         role: "assistant",
-        content: [{ type: "text", text }],
+        // "output_text" per the GA assistant-message content shape (was
+        // just "text" in the retired beta shape).
+        content: [{ type: "output_text", text }],
       },
     });
     this.createResponse();
@@ -155,7 +173,7 @@ export class OpenAIRealtimeSession extends EventEmitter {
         this.emit("callerTranscript", (event as { transcript?: string }).transcript ?? "");
         break;
 
-      case "response.audio.delta": {
+      case "response.output_audio.delta": {
         if (!this.firstAudioDeltaSentForResponse) {
           this.firstAudioDeltaSentForResponse = true;
           this.emit("firstAudioDelta");
@@ -164,11 +182,11 @@ export class OpenAIRealtimeSession extends EventEmitter {
         break;
       }
 
-      case "response.audio.done":
+      case "response.output_audio.done":
         this.emit("audioDone");
         break;
 
-      case "response.audio_transcript.done":
+      case "response.output_audio_transcript.done":
         this.emit("agentTranscript", (event as { transcript?: string }).transcript ?? "");
         break;
 
