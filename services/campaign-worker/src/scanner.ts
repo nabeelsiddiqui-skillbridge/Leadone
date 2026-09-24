@@ -11,10 +11,15 @@ interface CampaignRow extends CallingWindow {
   workspace_id: string;
   agent_id: string;
   phone_number_id: string | null;
+  status: string;
   daily_call_limit: number;
   concurrency_limit: number;
   max_attempts: number;
   retry_failed_minutes: number;
+}
+
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
 async function releaseClaim(campaignContactId: string, opts: { requeueAt?: string; markCompleted?: boolean; incrementAttempts?: boolean }) {
@@ -66,13 +71,28 @@ export async function scanCampaignsOnce(queue: Queue<PlaceCallJobData>): Promise
   const { data: campaigns } = await db
     .from("campaigns")
     .select(
-      "id, workspace_id, agent_id, phone_number_id, timezone_mode, fixed_timezone, days_of_week, calling_start_time, calling_end_time, start_date, end_date, daily_call_limit, concurrency_limit, max_attempts, retry_failed_minutes"
+      "id, workspace_id, agent_id, phone_number_id, status, timezone_mode, fixed_timezone, days_of_week, calling_start_time, calling_end_time, start_date, end_date, daily_call_limit, concurrency_limit, max_attempts, retry_failed_minutes"
     )
-    .eq("status", "running");
+    .in("status", ["running", "scheduled"]);
 
   let enqueued = 0;
 
   for (const campaign of (campaigns ?? []) as CampaignRow[]) {
+    if (campaign.status === "scheduled") {
+      // A campaign the user "started" from the wizard lands here as
+      // 'scheduled', not 'running' - promote it to 'running' the first tick
+      // its start_date (if any) has arrived. The .eq("status", "scheduled")
+      // guard below no-ops the update if it was paused/stopped concurrently.
+      if (campaign.start_date && campaign.start_date > todayIsoDate()) continue;
+      const { error } = await db
+        .from("campaigns")
+        .update({ status: "running" })
+        .eq("id", campaign.id)
+        .eq("status", "scheduled");
+      if (error) continue;
+      campaign.status = "running";
+    }
+
     // "always" matches neither branch below, so it's dialable at any hour on
     // any day - the intentional bypass for a campaign that should start
     // calling immediately instead of waiting for a calling-hours window.
