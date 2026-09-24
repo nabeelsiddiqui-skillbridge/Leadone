@@ -39,13 +39,16 @@ export async function POST(request: Request) {
     return new NextResponse("Invalid signature", { status: 403 });
   }
 
-  const streamUrl = `${process.env.REALTIME_WEBSOCKET_URL ?? "ws://localhost:8080/media-stream"}${
-    process.env.REALTIME_WEBSOCKET_URL?.includes("?") ? "&" : "?"
-  }callId=${encodeURIComponent(callId)}`;
+  // callId travels as a <Parameter> (delivered in the WebSocket's "start"
+  // event), not as a query string on the stream url - Twilio's Media
+  // Streams product does not reliably forward query parameters on the
+  // <Stream> url, only on plain HTTP webhook callbacks like this one.
+  const streamUrl = process.env.REALTIME_WEBSOCKET_URL ?? "ws://localhost:8080/media-stream";
 
   const twiml = new twilioLib.twiml.VoiceResponse();
   const connect = twiml.connect();
-  connect.stream({ url: streamUrl });
+  const stream = connect.stream({ url: streamUrl });
+  stream.parameter({ name: "callId", value: callId });
 
   return new NextResponse(twiml.toString(), {
     status: 200,

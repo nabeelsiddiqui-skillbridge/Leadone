@@ -8,7 +8,7 @@ import { buildSystemInstructions, buildOpeningGreeting } from "./promptBuilder.j
 import { runPostCallAnalysis } from "./postCallAnalysis.js";
 import type { AgentRecord, CallSessionState, ContactRecord } from "./types.js";
 
-interface TwilioStartMessage {
+export interface TwilioStartMessage {
   event: "start";
   start: { streamSid: string; callSid: string; customParameters?: Record<string, string> };
 }
@@ -39,7 +39,11 @@ export class CallSession {
     this.contact = contact;
   }
 
-  static async start(twilioWs: WebSocket, callId: string): Promise<CallSession | null> {
+  static async start(
+    twilioWs: WebSocket,
+    callId: string,
+    start: { streamSid: string; callSid: string }
+  ): Promise<CallSession | null> {
     const { data: call } = await db.from("calls").select("*").eq("id", callId).maybeSingle();
     if (!call) {
       console.error(`[call ${callId}] no matching calls row, refusing connection`);
@@ -68,8 +72,8 @@ export class CallSession {
       agentId: call.agent_id,
       campaignId: call.campaign_id,
       contactId: call.contact_id,
-      twilioCallSid: call.twilio_call_sid,
-      twilioStreamSid: null,
+      twilioCallSid: start.callSid,
+      twilioStreamSid: start.streamSid,
       openaiSessionId: null,
       callStartedAt: Date.now(),
       currentTurn: 0,
@@ -91,6 +95,17 @@ export class CallSession {
   private async init() {
     this.wireTwilioEvents();
     this.wireOpenAIEvents();
+
+    await db
+      .from("calls")
+      .update({
+        status: "in_progress",
+        twilio_call_sid: this.state.twilioCallSid,
+        twilio_stream_sid: this.state.twilioStreamSid,
+        started_at: new Date().toISOString(),
+        answered_at: new Date().toISOString(),
+      })
+      .eq("id", this.state.callId);
 
     await this.openai.connect({
       instructions: buildSystemInstructions(this.agent, this.contact),
@@ -127,22 +142,9 @@ export class CallSession {
     }
 
     switch (message.event) {
-      case "start": {
-        const start = (message as TwilioStartMessage).start;
-        this.state.twilioStreamSid = start.streamSid;
-        this.state.twilioCallSid = start.callSid;
-        await db
-          .from("calls")
-          .update({
-            status: "in_progress",
-            twilio_call_sid: start.callSid,
-            twilio_stream_sid: start.streamSid,
-            started_at: new Date().toISOString(),
-            answered_at: new Date().toISOString(),
-          })
-          .eq("id", this.state.callId);
-        break;
-      }
+      // No "start" case: Twilio sends exactly one "start" event per stream
+      // connection, and it's already consumed in index.ts to resolve callId
+      // (via its customParameters) before this session even exists.
       case "media": {
         const payload = (message as TwilioMediaMessage).media.payload;
         this.openai.appendAudio(payload);

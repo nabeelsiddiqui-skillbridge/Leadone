@@ -1,9 +1,10 @@
 import { createServer } from "node:http";
-import { URL } from "node:url";
-import { WebSocketServer } from "ws";
+import { WebSocketServer, type WebSocket } from "ws";
 
 import { config } from "./config.js";
-import { CallSession } from "./callSession.js";
+import { CallSession, type TwilioStartMessage } from "./callSession.js";
+
+const START_EVENT_TIMEOUT_MS = 5000;
 
 const httpServer = createServer((req, res) => {
   if (req.url === "/health") {
@@ -17,27 +18,57 @@ const httpServer = createServer((req, res) => {
 
 const wss = new WebSocketServer({ server: httpServer, path: "/media-stream" });
 
-wss.on("connection", async (ws, req) => {
-  const url = new URL(req.url ?? "", "http://localhost");
-  const callId = url.searchParams.get("callId");
+wss.on("connection", (ws) => {
+  // Twilio's Media Streams product does not reliably forward query
+  // parameters on the <Stream> connection url, so callId travels instead as
+  // a <Parameter> the voice webhook attaches - delivered here as
+  // start.customParameters on the very first message Twilio sends on this
+  // socket. Everything downstream (CallSession) waits for that.
+  const timeout = setTimeout(() => {
+    console.error("Rejected media stream connection: no start event within timeout");
+    ws.close(1008, "no start event");
+  }, START_EVENT_TIMEOUT_MS);
 
-  if (!callId) {
-    console.error("Rejected media stream connection: missing callId query param");
-    ws.close(1008, "missing callId");
-    return;
-  }
+  const onFirstMessage = async (raw: WebSocket.RawData) => {
+    ws.off("message", onFirstMessage);
+    clearTimeout(timeout);
 
-  console.log(`[call ${callId}] Twilio media stream connected`);
-
-  try {
-    const session = await CallSession.start(ws, callId);
-    if (!session) {
-      ws.close(1011, "call not found or not configured");
+    let message: Partial<TwilioStartMessage>;
+    try {
+      message = JSON.parse(raw.toString());
+    } catch {
+      console.error("Rejected media stream connection: first message was not valid JSON");
+      ws.close(1008, "invalid start message");
+      return;
     }
-  } catch (err) {
-    console.error(`[call ${callId}] failed to start session`, err);
-    ws.close(1011, "internal error");
-  }
+
+    if (message.event !== "start" || !message.start) {
+      console.error(`Rejected media stream connection: first event was "${message.event}", expected "start"`);
+      ws.close(1008, "expected start event first");
+      return;
+    }
+
+    const callId = message.start.customParameters?.callId;
+    if (!callId) {
+      console.error("Rejected media stream connection: missing callId custom parameter");
+      ws.close(1008, "missing callId");
+      return;
+    }
+
+    console.log(`[call ${callId}] Twilio media stream connected`);
+
+    try {
+      const session = await CallSession.start(ws, callId, message.start);
+      if (!session) {
+        ws.close(1011, "call not found or not configured");
+      }
+    } catch (err) {
+      console.error(`[call ${callId}] failed to start session`, err);
+      ws.close(1011, "internal error");
+    }
+  };
+
+  ws.on("message", onFirstMessage);
 });
 
 httpServer.listen(config.port, () => {
