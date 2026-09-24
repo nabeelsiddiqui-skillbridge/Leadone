@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { buildSystemInstructions, buildOpeningGreeting } from "./promptBuilder.js";
+import { buildSystemInstructions, buildOpeningGreeting, maxOutputTokensForAgent } from "./promptBuilder.js";
 import type { AgentRecord, ContactRecord } from "./types.js";
 
 const BASE_AGENT: AgentRecord = {
@@ -92,6 +92,28 @@ describe("buildSystemInstructions", () => {
     // persona was null on BASE_AGENT - should never appear as "Persona: null" etc.
     expect(prompt).not.toContain("Persona: null");
     expect(prompt).not.toMatch(/\n{3,}/);
+  });
+
+  it("includes a reply-length rule matching the agent's response_length setting", () => {
+    const concise = buildSystemInstructions(BASE_AGENT, BASE_CONTACT);
+    expect(concise).toContain("one short sentence");
+
+    const detailed = buildSystemInstructions({ ...BASE_AGENT, response_length: "detailed" }, BASE_CONTACT);
+    expect(detailed).toContain("short paragraph at most");
+  });
+});
+
+describe("maxOutputTokensForAgent", () => {
+  it("caps concise agents to a small token budget", () => {
+    expect(maxOutputTokensForAgent({ ...BASE_AGENT, response_length: "concise" })).toBe(120);
+  });
+
+  it("allows a larger budget for balanced agents", () => {
+    expect(maxOutputTokensForAgent({ ...BASE_AGENT, response_length: "balanced" })).toBe(300);
+  });
+
+  it("removes the cap entirely for detailed agents", () => {
+    expect(maxOutputTokensForAgent({ ...BASE_AGENT, response_length: "detailed" })).toBe("inf");
   });
 });
 

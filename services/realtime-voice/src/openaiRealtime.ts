@@ -9,6 +9,10 @@ export interface RealtimeSessionOptions {
   voice: string;
   temperature: number;
   toolsEnabled: boolean;
+  /** Hard cap on a single response's length, per the agent's response_length setting — see promptBuilder.maxOutputTokensForAgent. */
+  maxOutputTokens: number | "inf";
+  /** Let the server itself cancel an in-progress response the instant it detects the caller speaking, rather than relying solely on our own speechStarted handling. */
+  interruptOnSpeech: boolean;
 }
 
 interface FunctionCallAccumulator {
@@ -81,6 +85,7 @@ export class OpenAIRealtimeSession extends EventEmitter {
         type: "realtime",
         instructions: options.instructions,
         output_modalities: ["audio"],
+        max_output_tokens: options.maxOutputTokens,
         audio: {
           input: {
             format: { type: "audio/pcmu" },
@@ -90,6 +95,12 @@ export class OpenAIRealtimeSession extends EventEmitter {
               threshold: 0.5,
               prefix_padding_ms: 300,
               silence_duration_ms: 500,
+              // Cancel the model's in-progress response server-side the
+              // instant the caller starts talking, instead of waiting for
+              // our own speechStarted handler to do it client-side - this
+              // is what was making the agent "talk but not listen" when a
+              // caller tried to interrupt.
+              interrupt_response: options.interruptOnSpeech,
             },
           },
           output: {

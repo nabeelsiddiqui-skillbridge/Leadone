@@ -4,7 +4,7 @@ import { db } from "./db.js";
 import { config } from "./config.js";
 import { OpenAIRealtimeSession } from "./openaiRealtime.js";
 import { executeTool } from "./tools/index.js";
-import { buildSystemInstructions, buildOpeningGreeting } from "./promptBuilder.js";
+import { buildSystemInstructions, buildOpeningGreeting, maxOutputTokensForAgent } from "./promptBuilder.js";
 import { runPostCallAnalysis } from "./postCallAnalysis.js";
 import type { AgentRecord, CallSessionState, ContactRecord } from "./types.js";
 
@@ -112,6 +112,8 @@ export class CallSession {
       voice: this.agent.voice || config.defaultVoice,
       temperature: this.agent.creativity ?? 0.3,
       toolsEnabled: true,
+      maxOutputTokens: maxOutputTokensForAgent(this.agent),
+      interruptOnSpeech: this.agent.interruptions_enabled,
     });
 
     const greeting = buildOpeningGreeting(this.agent, this.contact);

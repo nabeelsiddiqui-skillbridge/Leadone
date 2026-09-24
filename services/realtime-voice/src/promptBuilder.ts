@@ -2,7 +2,7 @@ import type { AgentRecord, ContactRecord } from "./types.js";
 
 const BASE_CONVERSATION_RULES = `
 Speak naturally, the way a real person would on the phone.
-Keep most replies to about 1-2 sentences. Ask one question at a time. Do not deliver long paragraphs and do not sound like a chatbot reading a script.
+Ask one question at a time. Do not deliver long paragraphs and do not sound like a chatbot reading a script.
 Do not repeat the caller's name over and over.
 Use contractions naturally (I'm, you're, that's, don't).
 Use light conversational acknowledgements ("Got it.", "Okay.", "Sure.", "Absolutely.", "That makes sense.") but don't overuse them.
@@ -12,6 +12,26 @@ Never claim an appointment has been booked unless the book_appointment tool call
 Never invent information that is not in your instructions or the knowledge base search results. If you don't know something, say so and offer to have someone follow up.
 If the caller asks to not be called again, stop calling, or says they're not interested in ever being contacted, acknowledge them politely and call the mark_do_not_call tool — do not argue or keep pitching.
 `.trim();
+
+const RESPONSE_LENGTH_RULES: Record<AgentRecord["response_length"], string> = {
+  concise:
+    "Reply length: keep every single reply to one short sentence — two only if truly necessary. Answer the one thing that was just said or asked, then stop talking. Never stack multiple points or questions in one turn.",
+  balanced: "Reply length: keep replies to 2-3 short sentences. Stay focused on the one topic at hand before moving to the next.",
+  detailed:
+    "Reply length: you may give a fuller explanation when the caller asks for detail, but keep it to a short paragraph at most and stay on the single point being discussed — never wander across multiple topics in one turn.",
+};
+
+/** Session-level hard cap matching the response_length rule above, so verbosity is enforced by the API itself and not just requested in the prompt. */
+export function maxOutputTokensForAgent(agent: AgentRecord): number | "inf" {
+  switch (agent.response_length) {
+    case "concise":
+      return 120;
+    case "balanced":
+      return 300;
+    case "detailed":
+      return "inf";
+  }
+}
 
 function contactContext(contact: ContactRecord | null): string {
   if (!contact) return "No contact record is attached to this call.";
@@ -53,6 +73,7 @@ export function buildSystemInstructions(agent: AgentRecord, contact: ContactReco
     agent.end_call_rules ? `When to end the call:\n${agent.end_call_rules}` : null,
     "Use the search_knowledge_base tool when the caller asks something factual about the business (pricing, services, policies) that you're not certain about from these instructions alone.",
     BASE_CONVERSATION_RULES,
+    RESPONSE_LENGTH_RULES[agent.response_length],
   ];
 
   return sections.filter(Boolean).join("\n\n");
