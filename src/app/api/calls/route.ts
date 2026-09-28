@@ -80,7 +80,10 @@ export async function POST(request: Request) {
   });
 
   if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: result.status });
+    return NextResponse.json(
+      { error: result.error, permanentReason: result.permanentReason },
+      { status: result.status }
+    );
   }
   return NextResponse.json({ callId: result.callId, twilioCallSid: result.twilioCallSid });
 }

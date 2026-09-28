@@ -14,7 +14,22 @@ export interface PlaceCallInput {
 
 export type PlaceCallResult =
   | { ok: true; callId: string; twilioCallSid: string }
-  | { ok: false; status: number; error: string };
+  | {
+      ok: false;
+      status: number;
+      error: string;
+      /**
+       * Set when retrying later can never succeed (the contact is on the
+       * DNC list, or the agent/contact was deleted) - the campaign worker
+       * uses this to resolve the campaign_contacts row immediately instead
+       * of leaving it "queued" for a same-error retry loop that only ever
+       * exhausts after max_attempts x retry_failed_minutes of silent churn.
+       * Left unset for transient failures (Twilio down, no active number,
+       * missing credentials) that a retry - or an admin fixing config in
+       * the meantime - can still resolve.
+       */
+      permanentReason?: "do_not_call" | "not_found";
+    };
 
 /**
  * Shared call-placement logic used by both the authenticated-user path
@@ -35,7 +50,7 @@ export async function placeCall(
     .eq("id", agentId)
     .eq("workspace_id", workspaceId)
     .maybeSingle();
-  if (!agent) return { ok: false, status: 404, error: "Agent not found." };
+  if (!agent) return { ok: false, status: 404, error: "Agent not found.", permanentReason: "not_found" };
 
   const { data: contact } = await supabase
     .from("contacts")
@@ -43,9 +58,14 @@ export async function placeCall(
     .eq("id", contactId)
     .eq("workspace_id", workspaceId)
     .maybeSingle();
-  if (!contact) return { ok: false, status: 404, error: "Contact not found." };
+  if (!contact) return { ok: false, status: 404, error: "Contact not found.", permanentReason: "not_found" };
   if (contact.status === "do_not_call") {
-    return { ok: false, status: 409, error: "This contact is on the Do Not Call list." };
+    return {
+      ok: false,
+      status: 409,
+      error: "This contact is on the Do Not Call list.",
+      permanentReason: "do_not_call",
+    };
   }
 
   const { data: dncEntry } = await supabase
@@ -55,7 +75,12 @@ export async function placeCall(
     .eq("phone", contact.phone)
     .maybeSingle();
   if (dncEntry) {
-    return { ok: false, status: 409, error: "This phone number is on the Do Not Call list." };
+    return {
+      ok: false,
+      status: 409,
+      error: "This phone number is on the Do Not Call list.",
+      permanentReason: "do_not_call",
+    };
   }
 
   let phoneNumberQuery = supabase

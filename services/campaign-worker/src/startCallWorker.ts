@@ -2,7 +2,7 @@ import { Worker, type Job } from "bullmq";
 
 import { config } from "./config.js";
 import { db } from "./db.js";
-import { placeCallViaApp, type PlaceCallJobData } from "./placeCall.js";
+import { placeCallViaApp, PlaceCallError, type PlaceCallJobData } from "./placeCall.js";
 
 async function handleStartCall(job: Job<PlaceCallJobData>) {
   const data = job.data;
@@ -30,26 +30,34 @@ async function handleStartCall(job: Job<PlaceCallJobData>) {
       // The call never got a Twilio SID at all (config error, network
       // error, DNC caught late, etc.) - no status webhook will ever fire
       // for it, so this worker is the only thing that will ever resolve
-      // this claim. Treat it the same way a "failed" Twilio outcome would be.
+      // this claim.
       const { data: current } = await db
         .from("campaign_contacts")
         .select("attempts")
         .eq("id", data.campaignContactId)
         .maybeSingle();
       const attempts = (current?.attempts ?? 0) + 1;
+
+      // A permanent failure (DNC, deleted agent/contact) will fail with the
+      // exact same error on every retry - resolve the row terminally on the
+      // first attempt rather than leaving it "queued" to churn silently for
+      // up to max_attempts x retry_failed_minutes (days) before anyone
+      // notices why a lead never got called.
+      const permanentReason = err instanceof PlaceCallError ? err.permanentReason : undefined;
       const maxAttempts = data.maxAttempts ?? 3;
       const retryMinutes = data.retryFailedMinutes ?? 1440;
       const exhausted = attempts >= maxAttempts;
+      const terminal = Boolean(permanentReason) || exhausted;
 
       await db
         .from("campaign_contacts")
         .update({
           attempts,
-          status: exhausted ? "completed" : "queued",
+          status: permanentReason === "do_not_call" ? "do_not_call" : terminal ? "completed" : "queued",
           locked_at: null,
           locked_by: null,
           last_attempt_at: new Date().toISOString(),
-          next_attempt_at: exhausted ? null : new Date(Date.now() + retryMinutes * 60 * 1000).toISOString(),
+          next_attempt_at: terminal ? null : new Date(Date.now() + retryMinutes * 60 * 1000).toISOString(),
         })
         .eq("id", data.campaignContactId);
 
@@ -59,7 +67,7 @@ async function handleStartCall(job: Job<PlaceCallJobData>) {
           campaign_id: data.campaignId,
           contact_id: data.contactId,
           attempt_number: attempts,
-          outcome: "dial_failed",
+          outcome: permanentReason === "do_not_call" ? "do_not_call" : "dial_failed",
         });
       }
     }

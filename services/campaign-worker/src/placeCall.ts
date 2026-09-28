@@ -20,6 +20,17 @@ export interface PlaceCallJobData {
  * secret header rather than a user session. See src/app/api/calls/route.ts
  * for the matching server-side auth branch.
  */
+export class PlaceCallError extends Error {
+  /** Set when retrying later can never succeed (DNC, deleted agent/contact) - see place-call.ts. */
+  permanentReason?: "do_not_call" | "not_found";
+
+  constructor(message: string, permanentReason?: "do_not_call" | "not_found") {
+    super(message);
+    this.name = "PlaceCallError";
+    this.permanentReason = permanentReason;
+  }
+}
+
 export async function placeCallViaApp(job: PlaceCallJobData): Promise<{ callId: string; twilioCallSid: string }> {
   const response = await fetch(`${config.appInternalUrl}/api/calls`, {
     method: "POST",
@@ -36,10 +47,18 @@ export async function placeCallViaApp(job: PlaceCallJobData): Promise<{ callId: 
     }),
   });
 
-  const payload = (await response.json().catch(() => ({}))) as { callId?: string; twilioCallSid?: string; error?: string };
+  const payload = (await response.json().catch(() => ({}))) as {
+    callId?: string;
+    twilioCallSid?: string;
+    error?: string;
+    permanentReason?: "do_not_call" | "not_found";
+  };
 
   if (!response.ok || !payload.callId) {
-    throw new Error(payload.error ?? `Call placement failed with status ${response.status}`);
+    throw new PlaceCallError(
+      payload.error ?? `Call placement failed with status ${response.status}`,
+      payload.permanentReason
+    );
   }
 
   return { callId: payload.callId, twilioCallSid: payload.twilioCallSid ?? "" };
