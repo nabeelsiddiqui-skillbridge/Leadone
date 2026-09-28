@@ -22,6 +22,7 @@ export type IntegrationType = "twilio" | "openai" | "google_calendar" | "smtp" |
 export type IntegrationStatus = "connected" | "not_connected" | "error";
 export type TicketStatus = "open" | "in_progress" | "resolved" | "closed";
 export type TicketPriority = "low" | "normal" | "high" | "urgent";
+export type CustomPlanStatus = "draft" | "requested" | "active" | "rejected";
 
 export interface Database {
   public: {
@@ -796,6 +797,40 @@ export interface Database {
           message: string;
         };
         Update: Partial<Database["public"]["Tables"]["support_ticket_messages"]["Row"]>;
+        Relationships: [];
+      };
+      custom_plans: {
+        Row: {
+          id: string;
+          token: string;
+          workspace_id: string;
+          created_by: string | null;
+          name: string;
+          description: string | null;
+          price_cents: number;
+          max_agents: number;
+          max_campaigns: number;
+          max_contacts: number;
+          concurrent_calls: number;
+          monthly_minutes: number;
+          status: CustomPlanStatus;
+          requested_by: string | null;
+          requested_at: string | null;
+          approved_by: string | null;
+          approved_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["custom_plans"]["Row"]> & {
+          workspace_id: string;
+          name: string;
+          max_agents: number;
+          max_campaigns: number;
+          max_contacts: number;
+          concurrent_calls: number;
+          monthly_minutes: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["custom_plans"]["Row"]>;
         Relationships: [];
       };
     };

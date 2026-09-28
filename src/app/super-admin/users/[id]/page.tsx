@@ -16,6 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { UserDetailActions } from "@/components/super-admin/user-detail-actions";
 import { ChangePlanButtons } from "@/components/super-admin/change-plan-buttons";
+import { CustomPlanPanel } from "@/components/super-admin/custom-plan-panel";
 
 export const metadata: Metadata = { title: "Super Admin | User" };
 
@@ -61,6 +62,18 @@ export default async function SuperAdminUserDetailPage({
     .select("key, name, price_cents")
     .eq("is_active", true)
     .order("sort_order");
+
+  let customPlan = null;
+  if (primaryWorkspace) {
+    const { data } = await supabase
+      .from("custom_plans")
+      .select("*")
+      .eq("workspace_id", primaryWorkspace.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    customPlan = data;
+  }
 
   let counts = { agents: 0, campaigns: 0, contacts: 0, calls: 0, appointments: 0 };
   let recentCalls: Array<{
@@ -250,6 +263,14 @@ export default async function SuperAdminUserDetailPage({
             />
           </CardContent>
         </Card>
+      )}
+
+      {primaryWorkspace && (
+        <CustomPlanPanel
+          workspaceId={primaryWorkspace.id}
+          customPlan={customPlan}
+          shareUrlBase={process.env.NEXT_PUBLIC_APP_URL ?? ""}
+        />
       )}
 
       {primaryWorkspace && (
