@@ -33,17 +33,7 @@ import {
 } from "@/components/ui/form";
 
 import { createAgentAction, updateAgentAction, type AgentFormValues } from "@/app/(app)/agents/actions";
-
-const REALTIME_VOICES = [
-  "alloy",
-  "ash",
-  "ballad",
-  "coral",
-  "echo",
-  "sage",
-  "shimmer",
-  "verse",
-] as const;
+import { VoicePicker } from "@/components/agents/voice-picker";
 
 const formSchema = z
   .object({
@@ -284,23 +274,15 @@ export function AgentForm({ mode, agentId, defaultValues, knowledgeBases }: Agen
                   control={form.control}
                   name="voice"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="sm:col-span-2">
                       <FormLabel>Voice</FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select a voice" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {REALTIME_VOICES.map((voice) => (
-                            <SelectItem key={voice} value={voice}>
-                              {voice}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>An OpenAI Realtime API voice name.</FormDescription>
+                      <FormControl>
+                        <VoicePicker value={field.value} onChange={field.onChange} />
+                      </FormControl>
+                      <FormDescription>
+                        Tap the play button to preview a voice before picking it. Marin and Cedar are OpenAI&apos;s
+                        newest, most natural-sounding voices.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
