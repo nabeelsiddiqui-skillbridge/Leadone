@@ -10,6 +10,7 @@ import {
   PhoneCall,
   CalendarClock,
   Info,
+  LifeBuoy,
 } from "lucide-react";
 
 import { DollarSign, Timer, Cpu, AlertTriangle } from "lucide-react";
@@ -53,6 +54,7 @@ export default async function SuperAdminDashboardPage() {
     { count: totalCalls },
     { count: callsToday },
     { count: totalAppointments },
+    { count: openTickets },
   ] = await Promise.all([
     supabase.from("profiles").select("id", { count: "exact", head: true }),
     supabase
@@ -77,7 +79,24 @@ export default async function SuperAdminDashboardPage() {
       .select("id", { count: "exact", head: true })
       .gte("created_at", startOfToday()),
     supabase.from("appointments").select("id", { count: "exact", head: true }),
+    supabase
+      .from("support_tickets")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["open", "in_progress"]),
   ]);
+
+  // Estimated MRR: every active workspace's assigned plan price, summed.
+  // There's no real payment processor wired up yet, so this is a projection
+  // from the plan catalog rather than actual billed revenue.
+  const [{ data: activeWorkspacePlans }, { data: planRows }] = await Promise.all([
+    supabase.from("workspaces").select("plan").eq("status", "active"),
+    supabase.from("plans").select("key, price_cents"),
+  ]);
+  const planPriceByKey = new Map((planRows ?? []).map((p) => [p.key, p.price_cents]));
+  const estimatedMrrCents = (activeWorkspacePlans ?? []).reduce(
+    (sum, w) => sum + (planPriceByKey.get(w.plan) ?? 0),
+    0
+  );
 
   const { data: usageLast30Days } = await supabase
     .from("usage_records")
@@ -96,6 +115,7 @@ export default async function SuperAdminDashboardPage() {
     .gte("created_at", startOfMonth());
 
   const stats = [
+    { label: "Estimated MRR", value: `$${(estimatedMrrCents / 100).toLocaleString()}`, icon: DollarSign },
     { label: "Total Registered Users", value: totalUsers ?? 0, icon: Users },
     { label: "New Users Today", value: newUsersToday ?? 0, icon: UserPlus },
     { label: "New Users This Month", value: newUsersThisMonth ?? 0, icon: UserPlus },
@@ -107,6 +127,7 @@ export default async function SuperAdminDashboardPage() {
     { label: "Total Calls", value: totalCalls ?? 0, icon: PhoneCall },
     { label: "Calls Today", value: callsToday ?? 0, icon: PhoneCall },
     { label: "Appointments Booked", value: totalAppointments ?? 0, icon: CalendarClock },
+    { label: "Open Tickets", value: openTickets ?? 0, icon: LifeBuoy },
   ];
 
   return (
@@ -114,7 +135,9 @@ export default async function SuperAdminDashboardPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Super Admin Dashboard</h1>
         <p className="text-sm text-muted-foreground">
-          Platform-wide activity across every workspace.
+          Platform-wide activity across every workspace. Estimated MRR projects from each active
+          workspace&apos;s assigned plan price — there&apos;s no payment processor wired up yet, so it&apos;s not
+          billed revenue.
         </p>
       </div>
 

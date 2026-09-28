@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UserDetailActions } from "@/components/super-admin/user-detail-actions";
+import { ChangePlanButtons } from "@/components/super-admin/change-plan-buttons";
 
 export const metadata: Metadata = { title: "Super Admin | User" };
 
@@ -54,6 +55,12 @@ export default async function SuperAdminUserDetailPage({
   }
 
   const primaryWorkspace = workspaces[0]?.workspace ?? null;
+
+  const { data: plans } = await supabase
+    .from("plans")
+    .select("key, name, price_cents")
+    .eq("is_active", true)
+    .order("sort_order");
 
   let counts = { agents: 0, campaigns: 0, contacts: 0, calls: 0, appointments: 0 };
   let recentCalls: Array<{
@@ -225,6 +232,25 @@ export default async function SuperAdminUserDetailPage({
           </CardContent>
         </Card>
       </div>
+
+      {primaryWorkspace && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Plan</CardTitle>
+            <CardDescription>
+              Current: <span className="font-medium text-foreground">{primaryWorkspace.plan}</span> — click a
+              package to switch this workspace onto it immediately (updates its call/agent/campaign limits).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChangePlanButtons
+              workspaceId={primaryWorkspace.id}
+              currentPlan={primaryWorkspace.plan}
+              plans={(plans ?? []).map((p) => ({ key: p.key, name: p.name, priceCents: p.price_cents }))}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {primaryWorkspace && (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">

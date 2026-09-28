@@ -12,6 +12,7 @@ import {
   BarChart3,
   Settings,
   UserCircle,
+  LifeBuoy,
 } from "lucide-react";
 
 export interface NavItem {
@@ -34,6 +35,7 @@ export const NAV_ITEMS: NavItem[] = [
 ];
 
 export const NAV_ITEMS_SECONDARY: NavItem[] = [
+  { label: "Support", href: "/support", icon: LifeBuoy },
   { label: "Settings", href: "/settings", icon: Settings },
   { label: "Account", href: "/account", icon: UserCircle },
 ];

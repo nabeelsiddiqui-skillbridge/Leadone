@@ -104,3 +104,43 @@ export async function deleteUserAction(userId: string): Promise<AdminActionResul
 
   return { message: "User deleted." };
 }
+
+/**
+ * One-click plan change: copies the chosen plan's limits onto the
+ * workspace's own `limits` jsonb column (what campaign/agent-creation
+ * limit checks actually read) and sets `plan` to the plan's key.
+ */
+export async function assignWorkspacePlanAction(workspaceId: string, planKey: string): Promise<AdminActionResult> {
+  const { user: admin } = await requireSuperAdmin();
+  const supabase = await createClient();
+
+  const { data: plan, error: planError } = await supabase.from("plans").select("*").eq("key", planKey).single();
+  if (planError || !plan) return { error: "Plan not found." };
+
+  const { error: updateError } = await supabase
+    .from("workspaces")
+    .update({
+      plan: plan.key,
+      limits: {
+        agents: plan.max_agents,
+        campaigns: plan.max_campaigns,
+        contacts: plan.max_contacts,
+        concurrent_calls: plan.concurrent_calls,
+        monthly_minutes: plan.monthly_minutes,
+      },
+    })
+    .eq("id", workspaceId);
+
+  if (updateError) return { error: updateError.message };
+
+  await supabase.from("admin_audit_logs").insert({
+    admin_id: admin.id,
+    action: "workspace.plan_change",
+    target_type: "workspace",
+    target_id: workspaceId,
+    metadata: { plan: plan.key },
+  });
+
+  revalidatePath("/super-admin/users");
+  return { message: `Plan changed to ${plan.name}.` };
+}

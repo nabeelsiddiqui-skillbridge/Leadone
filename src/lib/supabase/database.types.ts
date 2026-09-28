@@ -20,6 +20,8 @@ export type AppointmentStatus = "scheduled" | "confirmed" | "completed" | "cance
 export type CampaignContactStatus = "pending" | "queued" | "in_progress" | "completed" | "skipped" | "do_not_call";
 export type IntegrationType = "twilio" | "openai" | "google_calendar" | "smtp" | "webhook" | "crm";
 export type IntegrationStatus = "connected" | "not_connected" | "error";
+export type TicketStatus = "open" | "in_progress" | "resolved" | "closed";
+export type TicketPriority = "low" | "normal" | "high" | "urgent";
 
 export interface Database {
   public: {
@@ -729,6 +731,71 @@ export interface Database {
           title: string;
         };
         Update: Partial<Database["public"]["Tables"]["notifications"]["Row"]>;
+        Relationships: [];
+      };
+      plans: {
+        Row: {
+          id: string;
+          key: string;
+          name: string;
+          description: string | null;
+          price_cents: number;
+          max_agents: number;
+          max_campaigns: number;
+          max_contacts: number;
+          concurrent_calls: number;
+          monthly_minutes: number;
+          sort_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["plans"]["Row"]> & {
+          key: string;
+          name: string;
+          max_agents: number;
+          max_campaigns: number;
+          max_contacts: number;
+          concurrent_calls: number;
+          monthly_minutes: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["plans"]["Row"]>;
+        Relationships: [];
+      };
+      support_tickets: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          created_by: string | null;
+          subject: string;
+          status: "open" | "in_progress" | "resolved" | "closed";
+          priority: "low" | "normal" | "high" | "urgent";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["support_tickets"]["Row"]> & {
+          workspace_id: string;
+          subject: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["support_tickets"]["Row"]>;
+        Relationships: [];
+      };
+      support_ticket_messages: {
+        Row: {
+          id: string;
+          ticket_id: string;
+          workspace_id: string;
+          author_id: string | null;
+          is_from_admin: boolean;
+          message: string;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["support_ticket_messages"]["Row"]> & {
+          ticket_id: string;
+          workspace_id: string;
+          message: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["support_ticket_messages"]["Row"]>;
         Relationships: [];
       };
     };
