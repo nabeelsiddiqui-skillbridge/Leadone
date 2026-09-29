@@ -13,7 +13,13 @@
   }
 
   var origin = new URL(script.src).origin;
-  var BUBBLE_SIZE = 72;
+  // Deliberately larger than the 56px bubble button itself: the button's
+  // white ring, drop shadow, and pulsing glow all paint outside its own
+  // box, and the postMessage-driven resize below needs slack for browser
+  // rounding - a tight, exact-pixel fit here clips the bubble (or shows a
+  // scrollbar that steals width from it) rather than rendering it cleanly.
+  // Keep this in sync with the closed-state size widget-chat.tsx posts.
+  var BUBBLE_SIZE = 96;
 
   var container = document.createElement("div");
   container.id = "leadone-widget-container";

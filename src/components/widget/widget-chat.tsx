@@ -135,10 +135,17 @@ export function WidgetChat({ widgetKey, name, mode, primaryColor, size, greeting
   // iframe: a small bubble when closed, the full chat window when open. The
   // iframe itself always fills its container, so the container is what
   // actually needs to grow/shrink on the host page.
+  //
+  // Closed: this page's p-4 padding (16px/side, 32 total) leaves an inner
+  // area of 96-32=64 for the 56px bubble button - deliberately more than
+  // 56 so there's real slack (not just an exact pixel-for-pixel fit) for
+  // the ring/shadow around the button and for browser rounding. Keep this
+  // 96 in sync with BUBBLE_SIZE in public/widget.js.
+  // Open: dimensions + 32 matches the same p-4 padding around the panel.
   useEffect(() => {
     if (typeof window === "undefined" || window.parent === window) return;
-    const width = open ? Number.parseInt(dimensions.width, 10) + 16 : 72;
-    const height = open ? Number.parseInt(dimensions.height, 10) + 16 : 72;
+    const width = open ? Number.parseInt(dimensions.width, 10) + 32 : 96;
+    const height = open ? Number.parseInt(dimensions.height, 10) + 32 : 96;
     window.parent.postMessage({ source: "leadone-widget", open, width, height }, "*");
   }, [open, dimensions.width, dimensions.height]);
 

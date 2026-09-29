@@ -12,7 +12,7 @@ export default async function WidgetPage({ params }: { params: Promise<{ key: st
   if (!widget) notFound();
 
   return (
-    <div className="flex h-dvh w-full items-end justify-end bg-transparent p-2">
+    <div className="flex h-dvh w-full items-end justify-end bg-transparent p-4">
       <WidgetChat
         widgetKey={key}
         name={widget.name}
