@@ -100,13 +100,15 @@ export class OpenAIRealtimeSession extends EventEmitter {
             noise_reduction: { type: "near_field" },
             turn_detection: {
               type: "server_vad",
-              // Raised from the default 0.5: the previous threshold was
-              // sensitive enough that ordinary call-line noise/echo was
-              // enough to register as "caller speaking" and trigger a
-              // server-side cancel of the agent's in-progress response,
-              // which is what surfaced as the agent abruptly cutting off
-              // mid-word. A real interruption is still well above this bar.
-              threshold: 0.6,
+              // Back at the default 0.5 - raising this to 0.6 was meant to
+              // ignore line noise/echo, but it also raised the bar for real
+              // caller speech and stopped genuine barge-in from registering
+              // ("not allow user to talk"). noise_reduction above is the
+              // correct lever for the echo/noise problem - it filters the
+              // input before VAD ever sees it, so the threshold itself
+              // doesn't need to be detuned away from a level that works for
+              // real speech.
+              threshold: 0.5,
               prefix_padding_ms: 300,
               silence_duration_ms: 500,
               // Cancel the model's in-progress response server-side the
@@ -120,10 +122,13 @@ export class OpenAIRealtimeSession extends EventEmitter {
           output: {
             format: { type: "audio/pcmu" },
             voice: options.voice,
-            // Default (1.0) reads as sluggish over a phone line's narrower
-            // bandwidth; 1.15x keeps it clearly intelligible while sounding
-            // noticeably more responsive/conversational.
-            speed: 1.15,
+            // Left at the model's default (1.0). 1.15x made speech sound
+            // noticeably robotic/rushed - this parameter is a post-hoc
+            // playback-rate stretch, not a "speak faster" instruction to
+            // the model, and it doesn't hold up well on already-compressed
+            // phone audio. If pacing still feels off, that's better solved
+            // in the agent's own prompt/instructions than by speeding up
+            // the raw audio.
           },
         },
         tools: options.toolsEnabled ? TOOL_DEFINITIONS : [],
