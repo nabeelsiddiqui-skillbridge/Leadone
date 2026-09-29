@@ -13,6 +13,8 @@ import {
   Settings,
   UserCircle,
   LifeBuoy,
+  MessageSquareText,
+  Inbox,
 } from "lucide-react";
 
 export interface NavItem {
@@ -28,6 +30,8 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Leads", href: "/contacts", icon: Users },
   { label: "Calls", href: "/calls", icon: PhoneCall },
   { label: "Appointments", href: "/appointments", icon: CalendarClock },
+  { label: "Chat Widgets", href: "/widgets", icon: MessageSquareText },
+  { label: "Live Chat", href: "/live-chat", icon: Inbox },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
   { label: "Knowledge Base", href: "/knowledge-base", icon: BookOpen },
   { label: "Phone Numbers", href: "/phone-numbers", icon: Phone },

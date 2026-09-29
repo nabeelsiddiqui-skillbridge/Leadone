@@ -23,6 +23,11 @@ export type IntegrationStatus = "connected" | "not_connected" | "error";
 export type TicketStatus = "open" | "in_progress" | "resolved" | "closed";
 export type TicketPriority = "low" | "normal" | "high" | "urgent";
 export type CustomPlanStatus = "draft" | "requested" | "active" | "rejected";
+export type WidgetMode = "chat" | "call" | "both";
+export type WidgetSize = "compact" | "standard" | "large";
+export type WidgetStatus = "active" | "inactive";
+export type ChatConversationStatus = "ai" | "human" | "closed";
+export type ChatSenderType = "visitor" | "assistant" | "human";
 
 export interface Database {
   public: {
@@ -833,12 +838,87 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["custom_plans"]["Row"]>;
         Relationships: [];
       };
+      chat_widgets: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          agent_id: string | null;
+          name: string;
+          public_key: string;
+          mode: WidgetMode;
+          primary_color: string;
+          size: WidgetSize;
+          greeting_message: string;
+          status: WidgetStatus;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["chat_widgets"]["Row"]> & {
+          workspace_id: string;
+          name: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["chat_widgets"]["Row"]>;
+        Relationships: [];
+      };
+      chat_conversations: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          widget_id: string;
+          visitor_id: string;
+          visitor_name: string | null;
+          visitor_email: string | null;
+          visitor_phone: string | null;
+          contact_id: string | null;
+          page_url: string | null;
+          status: ChatConversationStatus;
+          assigned_user_id: string | null;
+          created_at: string;
+          last_message_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["chat_conversations"]["Row"]> & {
+          workspace_id: string;
+          widget_id: string;
+          visitor_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["chat_conversations"]["Row"]>;
+        Relationships: [];
+      };
+      chat_messages: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          workspace_id: string;
+          sender_type: ChatSenderType;
+          sender_user_id: string | null;
+          message: string;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["chat_messages"]["Row"]> & {
+          conversation_id: string;
+          workspace_id: string;
+          sender_type: ChatSenderType;
+          message: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["chat_messages"]["Row"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
       is_super_admin: { Args: Record<string, never>; Returns: boolean };
       is_workspace_member: { Args: { target_workspace_id: string }; Returns: boolean };
       is_workspace_admin: { Args: { target_workspace_id: string }; Returns: boolean };
+      match_knowledge_chunks: {
+        Args: { p_knowledge_base_ids: string[]; p_query_embedding: string; p_match_count?: number };
+        Returns: {
+          id: string;
+          document_id: string;
+          knowledge_base_id: string;
+          content: string;
+          similarity: number;
+        }[];
+      };
     };
     Enums: {
       platform_role: PlatformRole;
