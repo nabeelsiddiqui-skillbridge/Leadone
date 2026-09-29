@@ -5,12 +5,12 @@ import { PhoneCall, Users, CalendarClock, Megaphone, Plus, Bot, Trophy } from "l
 import { requireCurrentWorkspace } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { CallsOverTimeChart, type DailyPoint } from "@/components/analytics/calls-over-time-chart";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { ProgressRing } from "@/components/dashboard/progress-ring";
+import { RecentCallsTimeline, type RecentCallItem } from "@/components/dashboard/recent-calls-timeline";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -106,6 +106,20 @@ export default async function DashboardPage() {
   const topAgents = Array.from(agentStats.values())
     .sort((a, b) => b.total - a.total)
     .slice(0, 3);
+
+  const recentCallItems: RecentCallItem[] = (recentCalls ?? []).map((call) => {
+    const contact = call.contact as unknown as { first_name: string | null; last_name: string | null; company: string | null } | null;
+    const agent = call.agent as unknown as { name: string } | null;
+    return {
+      id: call.id,
+      status: call.status,
+      outcome: call.outcome,
+      durationSeconds: call.duration_seconds,
+      createdAt: call.created_at,
+      contactName: [contact?.first_name, contact?.last_name].filter(Boolean).join(" ") || "Unknown contact",
+      agentName: agent?.name ?? null,
+    };
+  });
 
   const stats = [
     { label: "Active Campaigns", value: activeCampaigns ?? 0, icon: Megaphone, accent: true },
@@ -208,7 +222,7 @@ export default async function DashboardPage() {
             <CardDescription>Latest activity across all campaigns</CardDescription>
           </CardHeader>
           <CardContent>
-            {!recentCalls || recentCalls.length === 0 ? (
+            {recentCallItems.length === 0 ? (
               <EmptyState
                 title="No calls yet"
                 description="Once a campaign starts dialing, calls will show up here in real time."
@@ -216,27 +230,7 @@ export default async function DashboardPage() {
                 actionLabel="Create a campaign"
               />
             ) : (
-              <ul className="divide-y">
-                {recentCalls.map((call) => {
-                  const contact = call.contact as unknown as { first_name: string | null; last_name: string | null; company: string | null } | null;
-                  const agent = call.agent as unknown as { name: string } | null;
-                  return (
-                    <li key={call.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
-                      <div className="min-w-0">
-                        <p className="truncate font-medium">
-                          {[contact?.first_name, contact?.last_name].filter(Boolean).join(" ") || "Unknown contact"}
-                        </p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {agent?.name ?? "—"} · {new Date(call.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <Badge variant={call.status === "completed" ? "success" : "secondary"}>
-                        {call.outcome ?? call.status}
-                      </Badge>
-                    </li>
-                  );
-                })}
-              </ul>
+              <RecentCallsTimeline calls={recentCallItems} />
             )}
           </CardContent>
         </Card>
