@@ -3,11 +3,32 @@ import { createServerClient } from "@supabase/ssr";
 
 import type { Database } from "./database.types";
 
-const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-password", "/auth/callback", "/widget"];
+// Auth pages: public, and a logged-in user gets bounced off them back to the
+// dashboard (see the `user && isAuthPath` check below) so a signed-in user
+// doesn't land back on /login.
+const AUTH_PATHS = ["/login", "/register", "/forgot-password", "/reset-password", "/auth/callback"];
+// Everything here plus AUTH_PATHS never requires a session — but unlike auth
+// pages, these stay visible to a logged-in user too. /widget in particular
+// must: it's the embeddable widget page, and the workspace owner testing
+// their own embed snippet is very often logged into the dashboard in the
+// same browser at the time.
+const PUBLIC_PATHS = [...AUTH_PATHS, "/widget"];
 
 function isPublicPath(pathname: string) {
   if (pathname === "/") return true;
+  // The embed script itself (public/widget.js) — an anonymous visitor's
+  // browser requests this directly via a <script src> tag on a third-party
+  // site. It doesn't match the "/widget" prefix below (no trailing slash),
+  // and static-file extension exclusions in proxy.ts's matcher only cover
+  // image types, not .js, so without this it was being redirected to
+  // /login and returned as HTML instead of executing as the embed script -
+  // silently breaking every embed for a signed-out visitor.
+  if (pathname === "/widget.js") return true;
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
+function isAuthPath(pathname: string) {
+  return AUTH_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
 /**
@@ -49,7 +70,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (user && isPublicPath(pathname) && pathname !== "/") {
+  if (user && isAuthPath(pathname)) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
