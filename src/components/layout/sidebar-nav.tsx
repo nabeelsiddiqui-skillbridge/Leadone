@@ -15,10 +15,10 @@ function NavLink({ item }: { item: NavItem }) {
     <Link
       href={item.href}
       className={cn(
-        "group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+        "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
         active
-          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-          : "text-sidebar-foreground/65 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+          ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+          : "text-sidebar-foreground/65 hover:bg-accent/60 hover:text-sidebar-foreground"
       )}
     >
       <Icon
@@ -32,18 +32,32 @@ function NavLink({ item }: { item: NavItem }) {
   );
 }
 
+function SectionLabel({ children }: { children: string }) {
+  return (
+    <p className="px-3 text-[10px] font-semibold tracking-widest text-sidebar-foreground/40 uppercase">
+      {children}
+    </p>
+  );
+}
+
 export function SidebarNav() {
   return (
     <nav className="scrollbar-thin flex flex-1 flex-col gap-6 overflow-y-auto p-3">
-      <div className="flex flex-col gap-0.5">
-        {NAV_ITEMS.map((item) => (
-          <NavLink key={item.href} item={item} />
-        ))}
+      <div className="flex flex-col gap-2">
+        <SectionLabel>Menu</SectionLabel>
+        <div className="flex flex-col gap-0.5">
+          {NAV_ITEMS.map((item) => (
+            <NavLink key={item.href} item={item} />
+          ))}
+        </div>
       </div>
-      <div className="mt-auto flex flex-col gap-0.5 border-t border-sidebar-border pt-3">
-        {NAV_ITEMS_SECONDARY.map((item) => (
-          <NavLink key={item.href} item={item} />
-        ))}
+      <div className="mt-auto flex flex-col gap-2 border-t border-sidebar-border pt-4">
+        <SectionLabel>General</SectionLabel>
+        <div className="flex flex-col gap-0.5">
+          {NAV_ITEMS_SECONDARY.map((item) => (
+            <NavLink key={item.href} item={item} />
+          ))}
+        </div>
       </div>
     </nav>
   );

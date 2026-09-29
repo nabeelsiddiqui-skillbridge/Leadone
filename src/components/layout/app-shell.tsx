@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 
 import { SidebarNav } from "./sidebar-nav";
 import { UserMenu } from "./user-menu";
+import { HeaderSearch } from "./header-search";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
@@ -57,19 +58,20 @@ export function AppShell({
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              onClick={() => setMobileOpen(true)}
-            >
-              <Menu />
-            </Button>
-            <span className="truncate text-sm font-medium text-muted-foreground">
-              {workspaceName}
-            </span>
+        <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0 md:hidden"
+            onClick={() => setMobileOpen(true)}
+          >
+            <Menu />
+          </Button>
+          <span className="hidden shrink-0 truncate text-sm font-medium text-muted-foreground md:block">
+            {workspaceName}
+          </span>
+          <div className="flex flex-1 justify-center">
+            <HeaderSearch />
           </div>
           <UserMenu fullName={fullName} email={email} isSuperAdmin={isSuperAdmin} />
         </header>
