@@ -15,13 +15,18 @@ function NavLink({ item }: { item: NavItem }) {
     <Link
       href={item.href}
       className={cn(
-        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+        "group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
         active
           ? "bg-sidebar-accent text-sidebar-accent-foreground"
-          : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          : "text-sidebar-foreground/65 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
       )}
     >
-      <Icon className="size-4 shrink-0" />
+      <Icon
+        className={cn(
+          "size-4 shrink-0 transition-colors",
+          active ? "text-sidebar-accent-foreground" : "text-sidebar-foreground/45 group-hover:text-sidebar-foreground/80"
+        )}
+      />
       {item.label}
     </Link>
   );
@@ -29,13 +34,13 @@ function NavLink({ item }: { item: NavItem }) {
 
 export function SidebarNav() {
   return (
-    <nav className="flex flex-1 flex-col gap-6 overflow-y-auto p-3">
-      <div className="flex flex-col gap-1">
+    <nav className="scrollbar-thin flex flex-1 flex-col gap-6 overflow-y-auto p-3">
+      <div className="flex flex-col gap-0.5">
         {NAV_ITEMS.map((item) => (
           <NavLink key={item.href} item={item} />
         ))}
       </div>
-      <div className="mt-auto flex flex-col gap-1 border-t border-sidebar-border pt-3">
+      <div className="mt-auto flex flex-col gap-0.5 border-t border-sidebar-border pt-3">
         {NAV_ITEMS_SECONDARY.map((item) => (
           <NavLink key={item.href} item={item} />
         ))}

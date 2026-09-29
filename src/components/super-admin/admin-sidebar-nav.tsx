@@ -18,13 +18,18 @@ function AdminNavLink({ item }: { item: AdminNavItem }) {
     <Link
       href={item.href}
       className={cn(
-        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+        "group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
         active
           ? "bg-sidebar-accent text-sidebar-accent-foreground"
-          : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          : "text-sidebar-foreground/65 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
       )}
     >
-      <Icon className="size-4 shrink-0" />
+      <Icon
+        className={cn(
+          "size-4 shrink-0 transition-colors",
+          active ? "text-sidebar-accent-foreground" : "text-sidebar-foreground/45 group-hover:text-sidebar-foreground/80"
+        )}
+      />
       {item.label}
     </Link>
   );
@@ -32,7 +37,7 @@ function AdminNavLink({ item }: { item: AdminNavItem }) {
 
 export function AdminSidebarNav() {
   return (
-    <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
+    <nav className="scrollbar-thin flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
       {ADMIN_NAV_ITEMS.map((item) => (
         <AdminNavLink key={item.href} item={item} />
       ))}

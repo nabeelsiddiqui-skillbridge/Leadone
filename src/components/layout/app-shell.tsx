@@ -1,13 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { Menu } from "lucide-react";
+import { Menu, Phone } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { SidebarNav } from "./sidebar-nav";
 import { UserMenu } from "./user-menu";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+
+function LogoMark({ className = "size-7" }: { className?: string }) {
+  return (
+    <span
+      className={`flex shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-sm ${className}`}
+    >
+      <Phone className="size-3.5" strokeWidth={2.5} />
+    </span>
+  );
+}
 
 export function AppShell({
   children,
@@ -28,10 +38,8 @@ export function AppShell({
     <div className="flex min-h-screen w-full bg-background">
       <aside className="hidden w-64 shrink-0 border-r border-sidebar-border bg-sidebar md:flex md:flex-col">
         <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-4">
-          <span className="flex size-7 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
-            L
-          </span>
-          <span className="font-semibold text-sidebar-foreground">LeadOne</span>
+          <LogoMark />
+          <span className="font-semibold tracking-tight text-sidebar-foreground">LeadOne</span>
         </div>
         <SidebarNav />
       </aside>
@@ -39,14 +47,17 @@ export function AppShell({
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-64 bg-sidebar p-0 text-sidebar-foreground">
           <SheetHeader className="border-b border-sidebar-border">
-            <SheetTitle className="text-left">LeadOne</SheetTitle>
+            <SheetTitle className="flex items-center gap-2 text-left">
+              <LogoMark />
+              LeadOne
+            </SheetTitle>
           </SheetHeader>
           <SidebarNav />
         </SheetContent>
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 items-center justify-between border-b px-4">
+        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
@@ -62,7 +73,9 @@ export function AppShell({
           </div>
           <UserMenu fullName={fullName} email={email} isSuperAdmin={isSuperAdmin} />
         </header>
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+          <div className="mx-auto w-full max-w-7xl">{children}</div>
+        </main>
       </div>
     </div>
   );
