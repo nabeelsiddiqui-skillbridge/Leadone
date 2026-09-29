@@ -90,9 +90,23 @@ export class OpenAIRealtimeSession extends EventEmitter {
           input: {
             format: { type: "audio/pcmu" },
             transcription: { model: "whisper-1" },
+            // Filters the input before it ever reaches VAD/the model. This is
+            // what cuts down the model tripping over line noise, its own
+            // echo bleeding back through the caller's phone speaker, or
+            // ambient background sound and stopping mid-sentence as if it
+            // had been interrupted - OpenAI's own docs describe this as
+            // directly reducing VAD false positives. "near_field" matches a
+            // phone handset better than "far_field" (laptop/conference mic).
+            noise_reduction: { type: "near_field" },
             turn_detection: {
               type: "server_vad",
-              threshold: 0.5,
+              // Raised from the default 0.5: the previous threshold was
+              // sensitive enough that ordinary call-line noise/echo was
+              // enough to register as "caller speaking" and trigger a
+              // server-side cancel of the agent's in-progress response,
+              // which is what surfaced as the agent abruptly cutting off
+              // mid-word. A real interruption is still well above this bar.
+              threshold: 0.6,
               prefix_padding_ms: 300,
               silence_duration_ms: 500,
               // Cancel the model's in-progress response server-side the
@@ -106,6 +120,10 @@ export class OpenAIRealtimeSession extends EventEmitter {
           output: {
             format: { type: "audio/pcmu" },
             voice: options.voice,
+            // Default (1.0) reads as sluggish over a phone line's narrower
+            // bandwidth; 1.15x keeps it clearly intelligible while sounding
+            // noticeably more responsive/conversational.
+            speed: 1.15,
           },
         },
         tools: options.toolsEnabled ? TOOL_DEFINITIONS : [],

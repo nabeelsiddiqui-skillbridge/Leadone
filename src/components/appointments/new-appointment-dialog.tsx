@@ -79,7 +79,11 @@ export function NewAppointmentDialog({
   }
 
   if (contacts.length === 0) {
-    return null;
+    return (
+      <Button size="sm" disabled title="Add a contact first">
+        <Plus /> New appointment
+      </Button>
+    );
   }
 
   return (
