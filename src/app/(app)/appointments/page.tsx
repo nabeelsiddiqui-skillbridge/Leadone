@@ -139,7 +139,7 @@ export default async function AppointmentsPage({
               description="Appointments your agents book during calls will show up here."
             />
           ) : (
-            <div className="rounded-lg border">
+            <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -233,7 +233,7 @@ export default async function AppointmentsPage({
               description="When a caller asks to be called back later, it will show up here."
             />
           ) : (
-            <div className="rounded-lg border">
+            <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
               <Table>
                 <TableHeader>
                   <TableRow>

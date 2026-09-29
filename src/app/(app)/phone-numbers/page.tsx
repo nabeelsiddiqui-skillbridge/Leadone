@@ -35,7 +35,7 @@ export default async function PhoneNumbersPage() {
           description="Add a Twilio number so campaigns have somewhere to call from."
         />
       ) : (
-        <div className="rounded-lg border">
+        <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>

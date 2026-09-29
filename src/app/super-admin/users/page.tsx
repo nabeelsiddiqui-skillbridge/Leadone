@@ -92,7 +92,7 @@ export default async function SuperAdminUsersPage() {
       {rows.length === 0 ? (
         <EmptyState title="No users yet" description="Registered users will show up here." />
       ) : (
-        <div className="rounded-lg border">
+        <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
           <UsersTable users={rows} currentAdminId={admin.id} />
         </div>
       )}

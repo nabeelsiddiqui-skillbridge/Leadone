@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CallsFilters } from "@/components/calls/calls-filters";
 
@@ -17,6 +18,17 @@ function statusVariant(status: string): "success" | "secondary" | "destructive" 
   if (["ringing", "initiated", "queued", "in_progress"].includes(status)) return "warning";
   return "secondary";
 }
+
+const OUTCOME_LABELS: Record<string, string> = {
+  qualified: "Qualified",
+  appointment_booked: "Appointment booked",
+  not_interested: "Not interested",
+  follow_up_needed: "Follow up needed",
+  no_decision: "No decision",
+  wrong_number: "Wrong number",
+  voicemail: "Voicemail",
+  incomplete: "Incomplete",
+};
 
 function formatDuration(seconds: number | null) {
   if (!seconds) return "—";
@@ -61,7 +73,9 @@ export default async function CallsPage({
     <div className="flex flex-col gap-6">
       <PageHeader title="Calls" description="Every call your agents have placed, with recordings and transcripts." />
 
-      <CallsFilters agents={agents ?? []} campaigns={campaigns ?? []} />
+      <Card className="p-4">
+        <CallsFilters agents={agents ?? []} campaigns={campaigns ?? []} />
+      </Card>
 
       {!calls || calls.length === 0 ? (
         <EmptyState
@@ -69,19 +83,17 @@ export default async function CallsPage({
           description="Calls placed by campaigns or test calls will show up here."
         />
       ) : (
-        <div className="rounded-lg border">
+        <Card className="overflow-hidden p-0">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Date</TableHead>
                 <TableHead>Contact</TableHead>
-                <TableHead>Campaign</TableHead>
-                <TableHead>Agent</TableHead>
-                <TableHead>Phone Number</TableHead>
+                <TableHead>Campaign / Agent</TableHead>
                 <TableHead>Duration</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Outcome</TableHead>
-                <TableHead>Appointment</TableHead>
+                <TableHead className="text-right">Appointment</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -89,35 +101,57 @@ export default async function CallsPage({
                 const contact = call.contact as unknown as { first_name: string | null; last_name: string | null; company: string | null; phone: string } | null;
                 const campaign = call.campaign as unknown as { id: string; name: string } | null;
                 const agent = call.agent as unknown as { id: string; name: string } | null;
-                const phoneNumber = call.phone_number as unknown as { phone_number: string } | null;
+                const outcomeLabel = call.outcome ? (OUTCOME_LABELS[call.outcome] ?? call.outcome) : null;
                 return (
-                  <TableRow key={call.id} className="cursor-pointer">
+                  <TableRow key={call.id}>
                     <TableCell>
-                      <Link href={`/calls/${call.id}`} className="hover:underline">
-                        {new Date(call.created_at).toLocaleString()}
+                      <Link href={`/calls/${call.id}`} className="whitespace-nowrap hover:underline">
+                        {new Date(call.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                        <span className="ml-1 text-xs text-muted-foreground">
+                          {new Date(call.created_at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+                        </span>
                       </Link>
                     </TableCell>
-                    <TableCell>
-                      {[contact?.first_name, contact?.last_name].filter(Boolean).join(" ") || contact?.phone || "Unknown"}
-                      {contact?.company ? ` · ${contact.company}` : ""}
+                    <TableCell className="max-w-48">
+                      <p className="truncate font-medium">
+                        {[contact?.first_name, contact?.last_name].filter(Boolean).join(" ") || contact?.phone || "Unknown"}
+                      </p>
+                      {contact?.company && <p className="truncate text-xs text-muted-foreground">{contact.company}</p>}
                     </TableCell>
-                    <TableCell>{campaign?.name ?? "—"}</TableCell>
-                    <TableCell>{agent?.name ?? "—"}</TableCell>
-                    <TableCell>{phoneNumber?.phone_number ?? "—"}</TableCell>
-                    <TableCell>{formatDuration(call.duration_seconds)}</TableCell>
-                    <TableCell>
-                      <Badge variant={statusVariant(call.status)}>{call.status}</Badge>
+                    <TableCell className="max-w-40">
+                      <p className="truncate">{campaign?.name ?? "—"}</p>
+                      {agent?.name && <p className="truncate text-xs text-muted-foreground">{agent.name}</p>}
                     </TableCell>
-                    <TableCell>{call.outcome ?? "—"}</TableCell>
+                    <TableCell className="whitespace-nowrap tabular-nums">{formatDuration(call.duration_seconds)}</TableCell>
                     <TableCell>
-                      {call.appointment_id ? <Badge variant="success">Booked</Badge> : "—"}
+                      <Badge variant={statusVariant(call.status)} className="whitespace-nowrap">
+                        {call.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="max-w-48">
+                      {outcomeLabel ? (
+                        <span className="block truncate" title={outcomeLabel}>
+                          {outcomeLabel}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {call.appointment_id ? (
+                        <Badge variant="success" className="whitespace-nowrap">
+                          Booked
+                        </Badge>
+                      ) : (
+                        "—"
+                      )}
                     </TableCell>
                   </TableRow>
                 );
               })}
             </TableBody>
           </Table>
-        </div>
+        </Card>
       )}
     </div>
   );

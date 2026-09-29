@@ -50,7 +50,7 @@ export default async function SuperAdminCampaignsPage() {
       {!campaigns || campaigns.length === 0 ? (
         <EmptyState title="No campaigns yet" description="Campaigns created by any workspace will show up here." />
       ) : (
-        <div className="rounded-lg border">
+        <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>

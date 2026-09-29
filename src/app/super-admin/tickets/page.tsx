@@ -32,7 +32,7 @@ export default async function SuperAdminTicketsPage() {
       {!tickets || tickets.length === 0 ? (
         <p className="text-sm text-muted-foreground">No tickets yet.</p>
       ) : (
-        <ul className="divide-y rounded-lg border">
+        <ul className="divide-y overflow-hidden rounded-xl border bg-card shadow-sm">
           {tickets.map((ticket) => {
             const workspace = ticket.workspace as unknown as { name: string } | null;
             return (

@@ -41,7 +41,7 @@ export default async function DoNotCallPage() {
           description="Numbers get added here automatically when a caller asks not to be contacted again, or you can add one manually."
         />
       ) : (
-        <div className="rounded-lg border">
+        <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>

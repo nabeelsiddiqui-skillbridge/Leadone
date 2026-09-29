@@ -120,7 +120,7 @@ export function CampaignsTable({ campaigns }: { campaigns: CampaignListRow[] }) 
 
   return (
     <>
-      <div className="rounded-lg border">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>

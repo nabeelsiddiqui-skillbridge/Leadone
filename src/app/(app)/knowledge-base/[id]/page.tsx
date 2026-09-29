@@ -79,7 +79,7 @@ export default async function KnowledgeBaseDetailPage({ params }: { params: Prom
           description="Add plain text, upload a file (.txt, .csv, .pdf, .docx), or pull in a URL. Each document is chunked and embedded automatically."
         />
       ) : (
-        <div className="rounded-lg border">
+        <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>

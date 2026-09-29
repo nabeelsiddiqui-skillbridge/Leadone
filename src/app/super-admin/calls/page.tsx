@@ -48,7 +48,7 @@ export default async function SuperAdminCallsPage({
       {!calls || calls.length === 0 ? (
         <EmptyState title="No calls yet" description="Calls placed by any workspace will show up here." />
       ) : (
-        <div className="rounded-lg border">
+        <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>

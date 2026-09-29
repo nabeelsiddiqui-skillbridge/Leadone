@@ -129,7 +129,7 @@ export default async function CampaignDetailPage({
           {!leads || leads.length === 0 ? (
             <EmptyState title="No leads yet" description="Add leads to this campaign to start dialing." />
           ) : (
-            <div className="rounded-lg border">
+            <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -184,7 +184,7 @@ export default async function CampaignDetailPage({
               description="Calls will show up here once the campaign worker starts dialing."
             />
           ) : (
-            <div className="rounded-lg border">
+            <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
               <Table>
                 <TableHeader>
                   <TableRow>

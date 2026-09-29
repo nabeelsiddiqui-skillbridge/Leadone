@@ -39,7 +39,7 @@ export default async function KnowledgeBasePage() {
           description="Create a knowledge base, then add text, files, or URLs for your agents to search from."
         />
       ) : (
-        <div className="rounded-lg border">
+        <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>

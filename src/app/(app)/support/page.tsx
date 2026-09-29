@@ -38,7 +38,7 @@ export default async function SupportPage() {
       {!tickets || tickets.length === 0 ? (
         <EmptyState title="No tickets yet" description="Open a ticket and we'll get back to you here." />
       ) : (
-        <ul className="divide-y rounded-lg border">
+        <ul className="divide-y overflow-hidden rounded-xl border bg-card shadow-sm">
           {tickets.map((ticket) => (
             <li key={ticket.id}>
               <Link
