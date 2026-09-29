@@ -17,15 +17,23 @@ const ANALYSIS_SCHEMA = {
       ],
     },
     interest_level: { type: "string", enum: ["high", "medium", "low", "none"] },
-    primary_need: { type: "string" },
+    // Nullable rather than omitted: OpenAI's strict structured-output mode
+    // requires every key in `properties` to also appear in `required` (an
+    // absent-from-required property is a schema error, not an optional
+    // field) - null is how a field that's genuinely optional in spirit gets
+    // expressed here.
+    primary_need: { type: ["string", "null"] },
     objections: { type: "array", items: { type: "string" } },
     follow_up_required: { type: "boolean" },
     next_action: { type: "string" },
     lead_score: { type: "number", description: "0-100" },
     sentiment: { type: "string", enum: ["positive", "neutral", "negative"] },
-    suggested_notes: { type: "string" },
+    suggested_notes: { type: ["string", "null"] },
   },
-  required: ["summary", "outcome", "interest_level", "follow_up_required", "next_action", "lead_score", "sentiment"],
+  required: [
+    "summary", "outcome", "interest_level", "primary_need", "objections",
+    "follow_up_required", "next_action", "lead_score", "sentiment", "suggested_notes",
+  ],
   additionalProperties: false,
 };
 

@@ -147,23 +147,37 @@ export class OpenAIRealtimeSession extends EventEmitter {
     this.send({ type: "response.cancel" });
   }
 
-  createResponse() {
+  createResponse(instructionsOverride?: string) {
     this.firstAudioDeltaSentForResponse = false;
-    this.send({ type: "response.create" });
+    this.send({
+      type: "response.create",
+      ...(instructionsOverride ? { response: { instructions: instructionsOverride } } : {}),
+    });
   }
 
+  /**
+   * Opens the call with the agent's configured greeting.
+   *
+   * This used to conversation.item.create a fake prior assistant message
+   * containing the greeting text, then call response.create right after.
+   * That never spoke the greeting at all: conversation.item.create only
+   * inserts a text item into history, it does not synthesize audio for it -
+   * and the immediately following response.create then asked the model for
+   * the NEXT turn, treating that inserted item as something it had already
+   * said. The model would invent a plausible follow-up ("Sure, understood.
+   * When would be a better time to reach you?") as its first spoken line,
+   * which is exactly the "starts talking like it's already mid-conversation
+   * and never says the actual script" behavior this was reported as.
+   *
+   * response.create's own per-response `instructions` field is the correct
+   * tool for this: it's a one-time instruction override for that response
+   * only, doesn't touch conversation history, and its output is a normal
+   * generated (and so spoken) turn.
+   */
   sendGreeting(text: string) {
-    this.send({
-      type: "conversation.item.create",
-      item: {
-        type: "message",
-        role: "assistant",
-        // "output_text" per the GA assistant-message content shape (was
-        // just "text" in the retired beta shape).
-        content: [{ type: "output_text", text }],
-      },
-    });
-    this.createResponse();
+    this.createResponse(
+      `Start the call now. Your very first line must be this opening, said naturally rather than read word-for-word like a script: "${text}". Then continue the conversation based on how the caller responds.`
+    );
   }
 
   sendFunctionCallOutput(callId: string, output: unknown) {
