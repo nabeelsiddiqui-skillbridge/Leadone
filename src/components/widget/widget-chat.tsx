@@ -6,6 +6,24 @@ import { MessageCircle, Phone, Send, X, Loader2, CheckCircle2 } from "lucide-rea
 import type { WidgetMode, WidgetSize } from "@/lib/supabase/database.types";
 import { cn } from "@/lib/utils";
 
+/** Lightens (positive percent) or darkens (negative) a hex color, for the gradient/glow treatment below. */
+function shadeColor(hex: string, percent: number): string {
+  const clean = hex.replace("#", "");
+  const normalized = clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean;
+  const num = Number.parseInt(normalized, 16);
+  if (Number.isNaN(num)) return hex;
+  const amount = Math.round(255 * (percent / 100));
+  const clamp = (channel: number) => Math.max(0, Math.min(255, channel + amount));
+  const r = clamp((num >> 16) & 0xff);
+  const g = clamp((num >> 8) & 0xff);
+  const b = clamp(num & 0xff);
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
+}
+
+function gradientStyle(color: string) {
+  return { backgroundImage: `linear-gradient(135deg, ${color}, ${shadeColor(color, -22)})` };
+}
+
 interface WidgetMessage {
   id: string;
   sender_type: "visitor" | "assistant" | "human";
@@ -177,16 +195,32 @@ export function WidgetChat({ widgetKey, name, mode, primaryColor, size, greeting
   }
 
   if (!open) {
+    const bubbleLabel =
+      mode === "call" ? `Call ${name}` : mode === "chat" ? `Chat with ${name}` : `Chat or call ${name}`;
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label={`Open ${name} chat`}
-        className="flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg transition-transform hover:scale-105"
-        style={{ backgroundColor: primaryColor }}
-      >
-        <MessageCircle className="h-6 w-6" />
-      </button>
+      <div className="relative flex h-14 w-14 items-center justify-center">
+        <span
+          className="absolute h-14 w-14 animate-ping rounded-full opacity-30"
+          style={{ backgroundColor: primaryColor }}
+        />
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label={bubbleLabel}
+          className="relative flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_10px_28px_-6px_rgba(0,0,0,0.4)] ring-4 ring-white transition-transform hover:scale-105 active:scale-95"
+          style={gradientStyle(primaryColor)}
+        >
+          {mode === "call" ? <Phone className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
+          {mode === "both" && (
+            <span
+              className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-sm ring-2 ring-white"
+              style={{ color: primaryColor }}
+            >
+              <Phone className="h-2.5 w-2.5" strokeWidth={2.5} />
+            </span>
+          )}
+        </button>
+      </div>
     );
   }
 
@@ -195,19 +229,23 @@ export function WidgetChat({ widgetKey, name, mode, primaryColor, size, greeting
       className="flex flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-2xl"
       style={{ width: dimensions.width, height: dimensions.height, maxWidth: "calc(100vw - 24px)", maxHeight: "calc(100vh - 24px)" }}
     >
-      <div className="flex items-center justify-between px-4 py-3 text-white" style={{ backgroundColor: primaryColor }}>
-        <div className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-sm font-semibold">
+      <div className="flex items-center justify-between px-4 py-3.5 text-white" style={gradientStyle(primaryColor)}>
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-sm font-semibold ring-2 ring-white/30">
             {name.slice(0, 1).toUpperCase()}
           </span>
           <div>
             <p className="text-sm font-semibold leading-tight">{name}</p>
-            <p className="flex items-center gap-1 text-xs text-white/80">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" /> Online now
+            <p className="flex items-center gap-1.5 text-xs text-white/80">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-300" />
+              </span>
+              Online now
             </p>
           </div>
         </div>
-        <button type="button" onClick={() => setOpen(false)} aria-label="Close" className="rounded-full p-1 hover:bg-white/10">
+        <button type="button" onClick={() => setOpen(false)} aria-label="Close" className="rounded-full p-1.5 hover:bg-white/10">
           <X className="h-5 w-5" />
         </button>
       </div>
@@ -256,12 +294,21 @@ export function WidgetChat({ widgetKey, name, mode, primaryColor, size, greeting
                       "max-w-[80%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed shadow-sm",
                       m.sender_type === "visitor" ? "text-white" : "bg-white text-gray-800"
                     )}
-                    style={m.sender_type === "visitor" ? { backgroundColor: primaryColor } : undefined}
+                    style={m.sender_type === "visitor" ? gradientStyle(primaryColor) : undefined}
                   >
                     {m.message}
                   </div>
                 </div>
               ))
+            )}
+            {sending && (
+              <div className="flex justify-start">
+                <div className="flex items-center gap-1 rounded-2xl bg-white px-4 py-3 shadow-sm">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-300 [animation-delay:-0.3s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-300 [animation-delay:-0.15s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-300" />
+                </div>
+              </div>
             )}
           </div>
           <form onSubmit={handleSend} className="flex items-center gap-2 border-t border-gray-100 bg-white p-3">
@@ -276,8 +323,8 @@ export function WidgetChat({ widgetKey, name, mode, primaryColor, size, greeting
               type="submit"
               disabled={!draft.trim() || !conversationId || sending}
               aria-label="Send"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white disabled:opacity-40"
-              style={{ backgroundColor: primaryColor }}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-transform disabled:opacity-40 disabled:hover:scale-100 hover:scale-105"
+              style={gradientStyle(primaryColor)}
             >
               <Send className="h-4 w-4" />
             </button>
@@ -316,8 +363,8 @@ export function WidgetChat({ widgetKey, name, mode, primaryColor, size, greeting
               <button
                 type="submit"
                 disabled={callState === "submitting" || !callPhone.trim()}
-                className="flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50"
-                style={{ backgroundColor: primaryColor }}
+                className="flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium text-white shadow-sm transition-transform disabled:opacity-50 disabled:hover:scale-100 hover:scale-[1.02]"
+                style={gradientStyle(primaryColor)}
               >
                 {callState === "submitting" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Phone className="h-4 w-4" />}
                 Call me now
