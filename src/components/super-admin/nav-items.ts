@@ -9,6 +9,7 @@ import {
   CreditCard,
   LifeBuoy,
   Phone,
+  Radar,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -23,6 +24,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { label: "Agents", href: "/super-admin/agents", icon: Bot },
   { label: "Campaigns", href: "/super-admin/campaigns", icon: Megaphone },
   { label: "Calls", href: "/super-admin/calls", icon: PhoneCall },
+  { label: "Discovery", href: "/super-admin/discovery", icon: Radar },
   { label: "Plans", href: "/super-admin/plans", icon: CreditCard },
   { label: "Phone Numbers", href: "/super-admin/phone-numbers", icon: Phone },
   { label: "Tickets", href: "/super-admin/tickets", icon: LifeBuoy },

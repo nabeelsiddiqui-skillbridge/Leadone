@@ -3,7 +3,12 @@ import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { decryptSecret } from "@/lib/crypto";
 
-export type CredentialProvider = "openai" | "twilio" | "google" | "smtp" | "webhook";
+export type CredentialProvider =
+  | "openai" | "twilio" | "google" | "smtp" | "webhook"
+  // Lead Discovery: Claude qualification, plus one provider per API-backed
+  // source connector (see src/lib/discovery/sources) so each shows up in
+  // the admin credentials UI the same way every other integration does.
+  | "anthropic" | "google_places" | "hunter_io" | "job_postings" | "news_funding";
 
 /** process.env fallback used to bootstrap the platform before an admin sets a DB-stored key. */
 const ENV_FALLBACKS: Partial<Record<`${CredentialProvider}:${string}`, string>> = {
@@ -12,6 +17,7 @@ const ENV_FALLBACKS: Partial<Record<`${CredentialProvider}:${string}`, string>> 
   "twilio:auth_token": process.env.TWILIO_AUTH_TOKEN,
   "google:client_id": process.env.GOOGLE_CLIENT_ID,
   "google:client_secret": process.env.GOOGLE_CLIENT_SECRET,
+  "anthropic:api_key": process.env.ANTHROPIC_API_KEY,
 };
 
 /**

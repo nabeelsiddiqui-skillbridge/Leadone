@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import type { CredentialProvider } from "@/lib/credentials";
 
 export function CredentialForm({
   provider,
@@ -20,7 +21,7 @@ export function CredentialForm({
   currentLast4,
   envFallbackConfigured,
 }: {
-  provider: "openai" | "twilio";
+  provider: CredentialProvider;
   keyName: string;
   label: string;
   placeholder: string;

@@ -6,7 +6,7 @@ import twilioLib from "twilio";
 import { requireSuperAdmin } from "@/lib/auth";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { encryptSecret, maskSecret } from "@/lib/crypto";
-import { resolveCredential } from "@/lib/credentials";
+import { resolveCredential, type CredentialProvider } from "@/lib/credentials";
 import type { Json } from "@/lib/supabase/database.types";
 
 export interface AdminActionResult {
@@ -25,7 +25,7 @@ async function auditLog(adminId: string, action: string, targetType: string, tar
  * plaintext never round-trips back to the browser after this call returns.
  */
 export async function savePlatformCredentialAction(
-  provider: "openai" | "twilio",
+  provider: CredentialProvider,
   keyName: string,
   plaintext: string
 ): Promise<AdminActionResult> {
@@ -57,7 +57,7 @@ export async function savePlatformCredentialAction(
   return { message: `Saved. Now ${maskSecret(plaintext.trim())}` };
 }
 
-export async function deletePlatformCredentialAction(provider: "openai" | "twilio", keyName: string): Promise<AdminActionResult> {
+export async function deletePlatformCredentialAction(provider: CredentialProvider, keyName: string): Promise<AdminActionResult> {
   const { user: admin } = await requireSuperAdmin();
   const db = createServiceRoleClient();
 
@@ -91,6 +91,24 @@ export async function testOpenAiConnectionAction(): Promise<AdminActionResult> {
     return { message: "OpenAI connection verified." };
   } catch (err) {
     return { error: `Could not reach OpenAI: ${(err as Error).message}` };
+  }
+}
+
+export async function testAnthropicConnectionAction(): Promise<AdminActionResult> {
+  const key = await resolveCredential(null, "anthropic", "api_key");
+  if (!key) return { error: "No Anthropic key configured (platform credential or ANTHROPIC_API_KEY env var)." };
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/models", {
+      headers: { "x-api-key": key, "anthropic-version": "2023-06-01" },
+    });
+    if (!response.ok) {
+      const body = await response.text();
+      return { error: `Anthropic rejected the key (${response.status}): ${body.slice(0, 200)}` };
+    }
+    return { message: "Anthropic connection verified." };
+  } catch (err) {
+    return { error: `Could not reach Anthropic: ${(err as Error).message}` };
   }
 }
 

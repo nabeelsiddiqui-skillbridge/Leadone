@@ -15,6 +15,7 @@ import {
   LifeBuoy,
   MessageSquareText,
   Inbox,
+  Radar,
 } from "lucide-react";
 
 export interface NavItem {
@@ -25,6 +26,7 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Discover", href: "/discover", icon: Radar },
   { label: "Agents", href: "/agents", icon: Bot },
   { label: "Campaigns", href: "/campaigns", icon: Megaphone },
   { label: "Leads", href: "/contacts", icon: Users },

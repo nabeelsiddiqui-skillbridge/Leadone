@@ -12,7 +12,11 @@ import { SystemToggleSetting } from "@/components/super-admin/system-toggle-sett
 import { JsonSettingsForm } from "@/components/super-admin/json-settings-form";
 import { FeatureFlagToggle } from "@/components/super-admin/feature-flag-toggle";
 import { PricingRow } from "@/components/super-admin/pricing-row";
-import { testOpenAiConnectionAction, testTwilioConnectionAction } from "@/app/super-admin/settings/actions";
+import {
+  testOpenAiConnectionAction,
+  testTwilioConnectionAction,
+  testAnthropicConnectionAction,
+} from "@/app/super-admin/settings/actions";
 import type { Json } from "@/lib/supabase/database.types";
 
 export const metadata: Metadata = { title: "Super Admin | Settings · APIs" };
@@ -105,6 +109,69 @@ export default async function SuperAdminSettingsApisPage() {
 
           <Card>
             <CardHeader>
+              <CardTitle className="text-base">Anthropic (Claude)</CardTitle>
+              <CardDescription>Used to qualify Lead Discovery leads against evidence. Separate from the OpenAI key above.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <CredentialForm
+                provider="anthropic"
+                keyName="api_key"
+                label="API Key"
+                placeholder="sk-ant-..."
+                currentLast4={credMap.get("anthropic:api_key") ?? null}
+                envFallbackConfigured={Boolean(process.env.ANTHROPIC_API_KEY)}
+              />
+              <TestConnectionButton label="Validate Anthropic connection" action={testAnthropicConnectionAction} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Lead Discovery sources</CardTitle>
+              <CardDescription>
+                Each source is labeled &quot;Needs API key&quot; in Discover until its key is set here - never shown as live
+                without one. See <code className="text-xs">/super-admin/discovery</code> for connection status and job
+                monitoring.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <CredentialForm
+                provider="google_places"
+                keyName="api_key"
+                label="Google Places API Key"
+                placeholder="AIza..."
+                currentLast4={credMap.get("google_places:api_key") ?? null}
+                envFallbackConfigured={false}
+              />
+              <CredentialForm
+                provider="hunter_io"
+                keyName="api_key"
+                label="Hunter.io API Key"
+                placeholder="..."
+                currentLast4={credMap.get("hunter_io:api_key") ?? null}
+                envFallbackConfigured={false}
+              />
+              <CredentialForm
+                provider="job_postings"
+                keyName="api_key"
+                label="Job postings provider API Key"
+                placeholder="..."
+                currentLast4={credMap.get("job_postings:api_key") ?? null}
+                envFallbackConfigured={false}
+              />
+              <CredentialForm
+                provider="news_funding"
+                keyName="api_key"
+                label="News & funding provider API Key"
+                placeholder="..."
+                currentLast4={credMap.get("news_funding:api_key") ?? null}
+                envFallbackConfigured={false}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle className="text-base">Google Calendar</CardTitle>
               <CardDescription>
                 OAuth client credentials for appointment booking. Configured via <code className="text-xs">GOOGLE_CLIENT_ID</code>/
@@ -189,6 +256,23 @@ export default async function SuperAdminSettingsApisPage() {
                 fields={[
                   { key: "webhook_base_url", label: "Webhook base URL" },
                   { key: "media_stream_base_url", label: "Media Stream base URL" },
+                ]}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Lead Discovery limits</CardTitle>
+              <CardDescription>Applied to new workspaces. Enforced by discovery actions when set above zero.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <JsonSettingsForm
+                settingKey="discovery_defaults"
+                value={asRecord(settingsMap.get("discovery_defaults"))}
+                fields={[
+                  { key: "monthly_jobs_limit", label: "Discovery jobs / month (0 = unlimited)", type: "number" },
+                  { key: "monthly_leads_limit", label: "New leads / month (0 = unlimited)", type: "number" },
                 ]}
               />
             </CardContent>

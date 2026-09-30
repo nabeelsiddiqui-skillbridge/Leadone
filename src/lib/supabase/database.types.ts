@@ -29,6 +29,18 @@ export type WidgetStatus = "active" | "inactive";
 export type ChatConversationStatus = "ai" | "human" | "closed";
 export type ChatSenderType = "visitor" | "assistant" | "human";
 
+export type DiscoveryChannel = "call" | "email" | "both";
+export type DiscoveryProfileStatus = "active" | "paused";
+export type DiscoverySourceCategory = "customer_provided" | "business_directory" | "contact_enrichment" | "hiring_signal" | "news_signal";
+export type DiscoverySourceStatus = "connected" | "needs_api_key" | "coming_soon" | "disabled";
+export type DiscoveryJobStatus = "queued" | "running" | "completed" | "failed";
+export type DiscoveryJobTrigger = "manual" | "scheduled";
+export type DiscoverySignalType =
+  | "new_location" | "hiring" | "funding" | "product_launch" | "public_post" | "website_issue" | "customer_provided" | "other";
+export type DiscoveryConfidenceLevel = "low" | "medium" | "high";
+export type DiscoveryQualificationStatus = "pending" | "qualified" | "unavailable" | "error";
+export type DiscoveredLeadStatus = "new" | "approved" | "rejected" | "converted";
+
 export interface Database {
   public: {
     Tables: {
@@ -603,7 +615,7 @@ export interface Database {
           id: string;
           scope: "platform" | "workspace";
           workspace_id: string | null;
-          provider: "openai" | "twilio" | "google" | "smtp" | "webhook";
+          provider: "openai" | "twilio" | "google" | "smtp" | "webhook" | "anthropic" | "google_places" | "hunter_io" | "job_postings" | "news_funding";
           key_name: string;
           ciphertext: string;
           iv: string;
@@ -614,7 +626,7 @@ export interface Database {
         };
         Insert: Partial<Database["public"]["Tables"]["integration_credentials"]["Row"]> & {
           scope: "platform" | "workspace";
-          provider: "openai" | "twilio" | "google" | "smtp" | "webhook";
+          provider: "openai" | "twilio" | "google" | "smtp" | "webhook" | "anthropic" | "google_places" | "hunter_io" | "job_postings" | "news_funding";
           key_name: string;
           ciphertext: string;
           iv: string;
@@ -901,6 +913,184 @@ export interface Database {
           message: string;
         };
         Update: Partial<Database["public"]["Tables"]["chat_messages"]["Row"]>;
+        Relationships: [];
+      };
+      discovery_profiles: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          name: string;
+          product_description: string;
+          icp_description: string | null;
+          target_industries: string[];
+          target_locations: string[];
+          company_size_min: number | null;
+          company_size_max: number | null;
+          keywords: string[];
+          exclusions: string[];
+          preferred_channel: DiscoveryChannel;
+          signals_to_monitor: string[];
+          status: DiscoveryProfileStatus;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["discovery_profiles"]["Row"]> & {
+          workspace_id: string;
+          name: string;
+          product_description: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["discovery_profiles"]["Row"]>;
+        Relationships: [];
+      };
+      discovery_sources: {
+        Row: {
+          id: string;
+          key: string;
+          name: string;
+          description: string;
+          category: DiscoverySourceCategory;
+          status: DiscoverySourceStatus;
+          credential_provider: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["discovery_sources"]["Row"]> & {
+          key: string;
+          name: string;
+          description: string;
+          category: DiscoverySourceCategory;
+        };
+        Update: Partial<Database["public"]["Tables"]["discovery_sources"]["Row"]>;
+        Relationships: [];
+      };
+      discovery_jobs: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          discovery_profile_id: string;
+          source_key: string;
+          status: DiscoveryJobStatus;
+          trigger: DiscoveryJobTrigger;
+          companies_found: number;
+          leads_created: number;
+          error_message: string | null;
+          started_at: string | null;
+          finished_at: string | null;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["discovery_jobs"]["Row"]> & {
+          workspace_id: string;
+          discovery_profile_id: string;
+          source_key: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["discovery_jobs"]["Row"]>;
+        Relationships: [];
+      };
+      discovered_companies: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          discovery_profile_id: string;
+          name: string;
+          website: string | null;
+          domain: string | null;
+          industry: string | null;
+          location: string | null;
+          company_size: string | null;
+          dedup_key: string;
+          source_key: string;
+          source_url: string | null;
+          first_observed_at: string;
+          raw_data: Json;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["discovered_companies"]["Row"]> & {
+          workspace_id: string;
+          discovery_profile_id: string;
+          name: string;
+          dedup_key: string;
+          source_key: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["discovered_companies"]["Row"]>;
+        Relationships: [];
+      };
+      discovered_signals: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          company_id: string;
+          signal_type: DiscoverySignalType;
+          description: string;
+          evidence_url: string | null;
+          source_key: string;
+          observed_at: string;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["discovered_signals"]["Row"]> & {
+          workspace_id: string;
+          company_id: string;
+          signal_type: DiscoverySignalType;
+          description: string;
+          source_key: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["discovered_signals"]["Row"]>;
+        Relationships: [];
+      };
+      discovered_contacts: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          company_id: string;
+          name: string | null;
+          title: string | null;
+          email: string | null;
+          phone: string | null;
+          source_url: string | null;
+          verified: boolean;
+          raw_data: Json;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["discovered_contacts"]["Row"]> & {
+          workspace_id: string;
+          company_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["discovered_contacts"]["Row"]>;
+        Relationships: [];
+      };
+      discovered_leads: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          discovery_profile_id: string;
+          company_id: string;
+          primary_contact_id: string | null;
+          job_id: string | null;
+          fit_score: number | null;
+          confidence_level: DiscoveryConfidenceLevel | null;
+          detected_signal_summary: string | null;
+          reason: string | null;
+          suggested_outreach_angle: string | null;
+          qualification_status: DiscoveryQualificationStatus;
+          qualification_model: string | null;
+          qualified_at: string | null;
+          status: DiscoveredLeadStatus;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          reject_reason: string | null;
+          converted_contact_id: string | null;
+          campaign_id: string | null;
+          agent_id: string | null;
+          converted_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["discovered_leads"]["Row"]> & {
+          workspace_id: string;
+          discovery_profile_id: string;
+          company_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["discovered_leads"]["Row"]>;
         Relationships: [];
       };
     };
