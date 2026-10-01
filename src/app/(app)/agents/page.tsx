@@ -10,8 +10,9 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AgentRowActions } from "@/components/agents/agent-row-actions";
 import { TemplateCard } from "@/components/agents/template-card";
+import { CampaignDetailActions } from "@/components/campaigns/campaign-detail-actions";
 import { AGENT_TEMPLATES } from "@/lib/agent-templates";
-import type { AgentStatus, Database } from "@/lib/supabase/database.types";
+import type { AgentStatus, CampaignStatus, Database } from "@/lib/supabase/database.types";
 
 export const metadata: Metadata = { title: "Agents" };
 
@@ -22,6 +23,16 @@ const STATUS_VARIANT: Record<AgentStatus, "success" | "secondary" | "outline"> =
   active: "success",
   inactive: "secondary",
   draft: "outline",
+};
+
+const CAMPAIGN_STATUS_VARIANT: Record<CampaignStatus, "success" | "secondary" | "outline" | "destructive"> = {
+  draft: "outline",
+  scheduled: "secondary",
+  running: "success",
+  paused: "secondary",
+  completed: "secondary",
+  stopped: "secondary",
+  error: "destructive",
 };
 
 /**
@@ -66,11 +77,26 @@ export default async function AgentsPage() {
   const agents: AgentRow[] = agentsData ?? [];
   const agentIds = agents.map((agent) => agent.id);
 
-  const [campaignCounts, callCounts, appointmentCounts] = await Promise.all([
-    countsByAgentId(supabase, "campaigns", workspace.id, agentIds),
+  const [callCounts, appointmentCounts, { data: agentCampaigns }] = await Promise.all([
     countsByAgentId(supabase, "calls", workspace.id, agentIds),
     countsByAgentId(supabase, "appointments", workspace.id, agentIds),
+    agentIds.length > 0
+      ? supabase
+          .from("campaigns")
+          .select("id, agent_id, name, status")
+          .eq("workspace_id", workspace.id)
+          .in("agent_id", agentIds)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [] as { id: string; agent_id: string; name: string; status: CampaignStatus }[] }),
   ]);
+
+  // One primary calling list per agent — the most recently created, since
+  // that's the one someone just activated a template or added leads to.
+  const primaryCampaignByAgent = new Map<string, { id: string; name: string; status: CampaignStatus }>();
+  for (const c of agentCampaigns ?? []) {
+    if (!c.agent_id || primaryCampaignByAgent.has(c.agent_id)) continue;
+    primaryCampaignByAgent.set(c.agent_id, { id: c.id, name: c.name, status: c.status });
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -113,9 +139,9 @@ export default async function AgentsPage() {
               <TableRow>
                 <TableHead>Agent Name</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Calling Status</TableHead>
                 <TableHead>Voice</TableHead>
                 <TableHead>Language</TableHead>
-                <TableHead>Campaigns Using Agent</TableHead>
                 <TableHead>Calls Made</TableHead>
                 <TableHead>Appointments Booked</TableHead>
                 <TableHead>Last Updated</TableHead>
@@ -123,27 +149,46 @@ export default async function AgentsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {agents.map((agent) => (
-                <TableRow key={agent.id}>
-                  <TableCell className="font-medium">
-                    <Link href={`/agents/${agent.id}`} className="hover:underline">
-                      {agent.name}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={STATUS_VARIANT[agent.status]}>{agent.status}</Badge>
-                  </TableCell>
-                  <TableCell>{agent.voice}</TableCell>
-                  <TableCell>{agent.language}</TableCell>
-                  <TableCell>{campaignCounts.get(agent.id) ?? 0}</TableCell>
-                  <TableCell>{callCounts.get(agent.id) ?? 0}</TableCell>
-                  <TableCell>{appointmentCounts.get(agent.id) ?? 0}</TableCell>
-                  <TableCell>{new Date(agent.updated_at).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <AgentRowActions id={agent.id} status={agent.status} />
-                  </TableCell>
-                </TableRow>
-              ))}
+              {agents.map((agent) => {
+                const campaign = primaryCampaignByAgent.get(agent.id);
+                return (
+                  <TableRow key={agent.id}>
+                    <TableCell className="font-medium">
+                      <Link href={`/agents/${agent.id}`} className="hover:underline">
+                        {agent.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={STATUS_VARIANT[agent.status]}>{agent.status}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {campaign ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant={CAMPAIGN_STATUS_VARIANT[campaign.status]}>{campaign.status}</Badge>
+                          <CampaignDetailActions
+                            campaignId={campaign.id}
+                            campaignName={campaign.name}
+                            status={campaign.status}
+                            size="sm"
+                          />
+                        </div>
+                      ) : (
+                        <Link href={`/agents/${agent.id}#calling`} className="text-xs text-muted-foreground hover:text-foreground hover:underline">
+                          No calling list — add one
+                        </Link>
+                      )}
+                    </TableCell>
+                    <TableCell>{agent.voice}</TableCell>
+                    <TableCell>{agent.language}</TableCell>
+                    <TableCell>{callCounts.get(agent.id) ?? 0}</TableCell>
+                    <TableCell>{appointmentCounts.get(agent.id) ?? 0}</TableCell>
+                    <TableCell>{new Date(agent.updated_at).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <AgentRowActions id={agent.id} status={agent.status} />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
           </Card>
