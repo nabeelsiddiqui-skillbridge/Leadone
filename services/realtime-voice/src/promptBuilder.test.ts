@@ -94,6 +94,12 @@ describe("buildSystemInstructions", () => {
     expect(prompt).toContain("mark_do_not_call");
   });
 
+  it("tells the model never to answer its own question or invent an answer to silence/garbled input", () => {
+    const prompt = buildSystemInstructions(BASE_AGENT, BASE_CONTACT, true);
+    expect(prompt).toContain("Never answer your own question.");
+    expect(prompt).toContain("Silence or noise is not an answer");
+  });
+
   it("omits empty/null optional sections instead of leaving blank lines", () => {
     const prompt = buildSystemInstructions(BASE_AGENT, BASE_CONTACT, true);
     // persona was null on BASE_AGENT - should never appear as "Persona: null" etc.
