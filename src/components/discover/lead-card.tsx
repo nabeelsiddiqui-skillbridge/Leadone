@@ -67,10 +67,10 @@ function fitScoreBadgeClass(score: number | null): string {
 
 export function LeadCard({
   lead,
-  campaigns,
+  agents,
 }: {
   lead: LeadCardData;
-  campaigns: { id: string; name: string; agent_id: string }[];
+  agents: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -229,7 +229,7 @@ export function LeadCard({
           </div>
         )}
 
-        {lead.status === "approved" && <ConvertToCampaignDialog leadId={lead.id} campaigns={campaigns} knownPhone={lead.contact?.phone ?? null} />}
+        {lead.status === "approved" && <ConvertToCampaignDialog leadId={lead.id} agents={agents} knownPhone={lead.contact?.phone ?? null} />}
 
         {lead.status === "converted" && (
           <Badge variant="secondary" className="gap-1">

@@ -4,15 +4,15 @@ import type { Metadata } from "next";
 import { requireCurrentWorkspace } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bot, Phone, CalendarClock, Megaphone } from "lucide-react";
+import { Bot, Phone, CalendarClock, Users } from "lucide-react";
 
 export const metadata: Metadata = { title: "Welcome" };
 
 const steps = [
-  { icon: Bot, title: "Create your first AI agent", description: "Give it a name, a voice, and a script.", href: "/agents/new" },
+  { icon: Bot, title: "Create your first AI agent", description: "Pick a pre-built role - it's ready to use in minutes.", href: "/agents/templates" },
   { icon: Phone, title: "Connect a phone number", description: "Sync a Twilio number so your agent can call out.", href: "/phone-numbers" },
   { icon: CalendarClock, title: "Connect your calendar", description: "Let your agent book real appointments.", href: "/settings" },
-  { icon: Megaphone, title: "Launch a campaign", description: "Upload leads and start calling.", href: "/campaigns/new" },
+  { icon: Users, title: "Add leads to call", description: "Upload a list and your agent starts dialing.", href: "/contacts" },
 ];
 
 export default async function OnboardingPage() {

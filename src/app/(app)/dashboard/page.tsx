@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PhoneCall, Users, CalendarClock, Megaphone, Plus, Bot, Trophy } from "lucide-react";
+import { PhoneCall, Users, CalendarClock, Bot, Trophy, Sparkles } from "lucide-react";
 
 import { requireCurrentWorkspace } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -11,6 +11,7 @@ import { CallsOverTimeChart, type DailyPoint } from "@/components/analytics/call
 import { StatCard } from "@/components/dashboard/stat-card";
 import { ProgressRing } from "@/components/dashboard/progress-ring";
 import { RecentCallsTimeline, type RecentCallItem } from "@/components/dashboard/recent-calls-timeline";
+import { AgentTemplatesPromo } from "@/components/dashboard/agent-templates-promo";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -32,7 +33,7 @@ export default async function DashboardPage() {
     { count: totalCalls },
     { count: appointmentsBooked },
     { count: qualifiedLeads },
-    { count: activeCampaigns },
+    { count: activeAgents },
     { data: recentCalls },
     { data: upcomingAppointments },
     { data: campaignStatusRows },
@@ -46,10 +47,10 @@ export default async function DashboardPage() {
       .eq("workspace_id", workspace.id)
       .eq("status", "qualified"),
     supabase
-      .from("campaigns")
+      .from("agents")
       .select("id", { count: "exact", head: true })
       .eq("workspace_id", workspace.id)
-      .eq("status", "running"),
+      .eq("status", "active"),
     supabase
       .from("calls")
       .select("id, status, outcome, duration_seconds, created_at, contact:contacts(first_name,last_name,company), agent:agents(name), campaign:campaigns(name)")
@@ -122,7 +123,7 @@ export default async function DashboardPage() {
   });
 
   const stats = [
-    { label: "Active Campaigns", value: activeCampaigns ?? 0, icon: Megaphone, accent: true },
+    { label: "Active Agents", value: activeAgents ?? 0, icon: Bot, accent: true },
     { label: "Calls Made", value: totalCalls ?? 0, icon: PhoneCall },
     { label: "Qualified Leads", value: qualifiedLeads ?? 0, icon: Users },
     { label: "Appointments Booked", value: appointmentsBooked ?? 0, icon: CalendarClock },
@@ -134,22 +135,19 @@ export default async function DashboardPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
           <p className="text-sm text-muted-foreground">
-            Track your campaigns, calls, and booked meetings at a glance.
+            Track your agents, calls, and booked meetings at a glance.
           </p>
         </div>
         <div className="flex gap-2">
-          <Button asChild variant="outline">
-            <Link href="/agents/new">
-              <Bot /> Create Agent
-            </Link>
-          </Button>
           <Button asChild>
-            <Link href="/campaigns/new">
-              <Plus /> Launch Campaign
+            <Link href="/agents/templates">
+              <Sparkles /> Create Agent
             </Link>
           </Button>
         </div>
       </div>
+
+      <AgentTemplatesPromo />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {stats.map((stat) => (
@@ -219,15 +217,15 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Recent Calls</CardTitle>
-            <CardDescription>Latest activity across all campaigns</CardDescription>
+            <CardDescription>Latest activity across all agents</CardDescription>
           </CardHeader>
           <CardContent>
             {recentCallItems.length === 0 ? (
               <EmptyState
                 title="No calls yet"
-                description="Once a campaign starts dialing, calls will show up here in real time."
-                actionHref="/campaigns/new"
-                actionLabel="Create a campaign"
+                description="Once an agent starts dialing, calls will show up here in real time."
+                actionHref="/agents/templates"
+                actionLabel="Create an agent"
               />
             ) : (
               <RecentCallsTimeline calls={recentCallItems} />
@@ -237,13 +235,13 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Campaign Status</CardTitle>
-            <CardDescription>Share of campaigns currently running</CardDescription>
+            <CardTitle className="text-base">Calling Status</CardTitle>
+            <CardDescription>Share of calling lists currently running</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-4">
             <ProgressRing percent={campaignRunningPercent} label="Running" />
             <p className="text-xs text-muted-foreground">
-              {runningCampaigns} of {totalCampaigns} campaign{totalCampaigns === 1 ? "" : "s"} running
+              {runningCampaigns} of {totalCampaigns} calling list{totalCampaigns === 1 ? "" : "s"} running
             </p>
           </CardContent>
         </Card>

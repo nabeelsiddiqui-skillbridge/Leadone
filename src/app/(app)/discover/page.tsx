@@ -34,7 +34,7 @@ export default async function DiscoverPage({
       <div className="flex flex-col gap-6">
         <PageHeader
           title="Discover"
-          description="An AI agent that finds businesses matching your ideal customer profile, scores them with evidence, and hands qualified leads straight to your calling campaigns."
+          description="An AI agent that finds businesses matching your ideal customer profile, scores them with evidence, and hands qualified leads straight to your AI agents to call."
         />
         <EmptyState
           title="Set up your first search"
@@ -47,7 +47,7 @@ export default async function DiscoverPage({
 
   const activeProfile = profiles.find((p) => p.id === profileIdParam) ?? profiles[0];
 
-  const [{ data: leads }, { data: agents }, { data: campaigns }] = await Promise.all([
+  const [{ data: leads }, { data: agents }] = await Promise.all([
     supabase
       .from("discovered_leads")
       .select("*, company:discovered_companies(*), contact:discovered_contacts(*), signals:discovered_signals(*)")
@@ -55,8 +55,7 @@ export default async function DiscoverPage({
       .eq("discovery_profile_id", activeProfile.id)
       .order("created_at", { ascending: false })
       .limit(200),
-    supabase.from("agents").select("id, name").eq("workspace_id", workspace.id).order("name"),
-    supabase.from("campaigns").select("id, name, agent_id").eq("workspace_id", workspace.id).order("name"),
+    supabase.from("agents").select("id, name").eq("workspace_id", workspace.id).eq("status", "active").order("name"),
   ]);
 
   const rawLeads = leads ?? [];
@@ -126,7 +125,7 @@ export default async function DiscoverPage({
         <StatCard label="Converted to calling" value={converted} icon={PhoneCall} />
       </div>
 
-      <DiscoverLeadList leads={cardLeads} campaigns={campaigns ?? []} />
+      <DiscoverLeadList leads={cardLeads} agents={agents ?? []} />
     </div>
   );
 }

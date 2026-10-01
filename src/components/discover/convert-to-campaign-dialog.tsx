@@ -23,33 +23,33 @@ import {
 
 export function ConvertToCampaignDialog({
   leadId,
-  campaigns,
+  agents,
   knownPhone,
 }: {
   leadId: string;
-  campaigns: { id: string; name: string; agent_id: string }[];
+  agents: { id: string; name: string }[];
   knownPhone: string | null;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [campaignId, setCampaignId] = useState<string>(campaigns[0]?.id ?? "");
+  const [agentId, setAgentId] = useState<string>(agents[0]?.id ?? "");
   const [phone, setPhone] = useState(knownPhone ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function handleSubmit() {
-    if (!campaignId) {
-      setError("Choose a campaign.");
+    if (!agentId) {
+      setError("Choose an agent.");
       return;
     }
     setError(null);
     startTransition(async () => {
-      const result = await convertLeadToCampaignAction(leadId, campaignId, phone);
+      const result = await convertLeadToCampaignAction(leadId, agentId, phone);
       if (result.error) {
         setError(result.error);
         return;
       }
-      toast.success("Added to campaign.");
+      toast.success("Added to the agent's calling list.");
       setOpen(false);
       router.refresh();
     });
@@ -59,15 +59,14 @@ export function ConvertToCampaignDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm">
-          <PhoneCall /> Add to campaign
+          <PhoneCall /> Add to calling list
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add to a calling campaign</DialogTitle>
+          <DialogTitle>Hand off to an agent</DialogTitle>
           <DialogDescription>
-            This creates a contact from the lead&apos;s evidence and adds them to the campaign&apos;s call queue, using that
-            campaign&apos;s agent.
+            This creates a contact from the lead&apos;s evidence and adds them to that agent&apos;s calling list.
           </DialogDescription>
         </DialogHeader>
 
@@ -78,21 +77,21 @@ export function ConvertToCampaignDialog({
             </Alert>
           )}
 
-          {campaigns.length === 0 ? (
+          {agents.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              You don&apos;t have any campaigns yet. Create one first, then come back here.
+              You don&apos;t have any agents yet. Create one first, then come back here.
             </p>
           ) : (
             <div className="grid gap-2">
-              <Label htmlFor="convert-campaign">Campaign</Label>
-              <Select value={campaignId} onValueChange={setCampaignId}>
-                <SelectTrigger id="convert-campaign" className="w-full">
-                  <SelectValue placeholder="Select a campaign" />
+              <Label htmlFor="convert-agent">Agent</Label>
+              <Select value={agentId} onValueChange={setAgentId}>
+                <SelectTrigger id="convert-agent" className="w-full">
+                  <SelectValue placeholder="Select an agent" />
                 </SelectTrigger>
                 <SelectContent>
-                  {campaigns.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
+                  {agents.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -114,9 +113,9 @@ export function ConvertToCampaignDialog({
         </div>
 
         <DialogFooter>
-          <Button type="button" onClick={handleSubmit} disabled={pending || campaigns.length === 0}>
+          <Button type="button" onClick={handleSubmit} disabled={pending || agents.length === 0}>
             {pending ? <Loader2 className="animate-spin" /> : null}
-            {pending ? "Adding…" : "Add to campaign"}
+            {pending ? "Adding…" : "Add to calling list"}
           </Button>
         </DialogFooter>
       </DialogContent>

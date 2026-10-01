@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Sparkles } from "lucide-react";
 
 import { requireCurrentWorkspace } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -76,20 +77,22 @@ export default async function AgentsPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Agents</h1>
           <p className="text-sm text-muted-foreground">
-            Reusable AI personas — voice, prompt, and behavior — you assign to campaigns.
+            Your AI personas — each one ready to answer calls and chats on its own.
           </p>
         </div>
         <Button asChild>
-          <Link href="/agents/new">New agent</Link>
+          <Link href="/agents/templates">
+            <Sparkles /> New agent
+          </Link>
         </Button>
       </div>
 
       {agents.length === 0 ? (
         <EmptyState
           title="No agents yet"
-          description="Create an AI agent persona to start calling leads once a campaign is assigned to it."
-          actionHref="/agents/new"
-          actionLabel="New agent"
+          description="Pick a pre-built role - Sales, Support, Appointment Setter, and more - and it's ready to start calling in minutes."
+          actionHref="/agents/templates"
+          actionLabel="Browse pre-built agents"
         />
       ) : (
         <Card className="overflow-hidden py-0">

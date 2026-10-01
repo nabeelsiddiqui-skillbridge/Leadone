@@ -23,7 +23,7 @@ export function StepAgent({
       <EmptyState
         title="No active agents"
         description="Create and activate an AI agent before building a campaign around it."
-        actionHref="/agents/new"
+        actionHref="/agents/templates"
         actionLabel="Create an agent"
       />
     );
@@ -57,7 +57,7 @@ export function StepAgent({
       ))}
       <p className="col-span-full text-sm text-muted-foreground">
         Don&apos;t see the agent you need?{" "}
-        <Link href="/agents/new" className="text-primary hover:underline">
+        <Link href="/agents/templates" className="text-primary hover:underline">
           Create a new agent
         </Link>
         .

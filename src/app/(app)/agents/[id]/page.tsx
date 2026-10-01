@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, PhoneCall, Plus, PartyPopper } from "lucide-react";
 
 import { requireCurrentWorkspace } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AgentForm } from "@/components/agents/agent-form";
-import type { AgentStatus } from "@/lib/supabase/database.types";
+import type { AgentStatus, CampaignStatus } from "@/lib/supabase/database.types";
 
 export const metadata: Metadata = { title: "Edit agent" };
 
@@ -23,16 +25,29 @@ function toStringArray(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === "string");
 }
 
+const CAMPAIGN_STATUS_VARIANT: Record<CampaignStatus, "success" | "secondary" | "outline" | "destructive"> = {
+  draft: "outline",
+  scheduled: "secondary",
+  running: "success",
+  paused: "secondary",
+  completed: "secondary",
+  stopped: "secondary",
+  error: "destructive",
+};
+
 export default async function AgentDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ activated?: string }>;
 }) {
   const { id } = await params;
+  const { activated } = await searchParams;
   const { workspace } = await requireCurrentWorkspace();
   const supabase = await createClient();
 
-  const [{ data: agent, error: agentError }, { data: knowledgeBases }, { data: linkedKnowledgeBases }] =
+  const [{ data: agent, error: agentError }, { data: knowledgeBases }, { data: linkedKnowledgeBases }, { data: campaigns }] =
     await Promise.all([
       supabase.from("agents").select("*").eq("id", id).eq("workspace_id", workspace.id).single(),
       supabase
@@ -41,6 +56,13 @@ export default async function AgentDetailPage({
         .eq("workspace_id", workspace.id)
         .order("name", { ascending: true }),
       supabase.from("agent_knowledge_bases").select("knowledge_base_id").eq("agent_id", id),
+      supabase
+        .from("campaigns")
+        .select("id, name, status, created_at, contacts:campaign_contacts(count)")
+        .eq("workspace_id", workspace.id)
+        .eq("agent_id", id)
+        .order("created_at", { ascending: false })
+        .limit(5),
     ]);
 
   // RLS already keeps this to the caller's workspace; a failed fetch here
@@ -97,6 +119,16 @@ export default async function AgentDetailPage({
         </p>
       </div>
 
+      {activated === "1" && (
+        <Alert className="border-success/40 bg-success/5">
+          <PartyPopper className="size-4 text-success" />
+          <AlertTitle>Your agent is ready</AlertTitle>
+          <AlertDescription>
+            {agent.name} is active and fully configured. Add leads to its calling list below to start calling.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <AgentForm
         mode="edit"
         agentId={agent.id}
@@ -104,19 +136,49 @@ export default async function AgentDetailPage({
         knowledgeBases={knowledgeBases ?? []}
       />
 
-      <Card id="test-agent">
+      <Card id="calling">
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <CardTitle>Test Agent</CardTitle>
-            <Badge variant="secondary">Coming in Phase 2</Badge>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <PhoneCall className="size-4" /> Calling
+              </CardTitle>
+              <CardDescription>Who this agent is calling, and how it&apos;s going.</CardDescription>
+            </div>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/campaigns/new">
+                <Plus /> New calling list
+              </Link>
+            </Button>
           </div>
-          <CardDescription>
-            Live agent testing — talking to this agent from your browser microphone, or placing a
-            real test phone call — goes live once the realtime voice server ships in Phase 2. This
-            agent&apos;s prompt, voice, and behavior settings above are saved and ready for when it
-            does.
-          </CardDescription>
         </CardHeader>
+        <CardContent>
+          {campaigns && campaigns.length > 0 ? (
+            <ul className="flex flex-col divide-y">
+              {campaigns.map((c) => {
+                const contacts = c.contacts as unknown as { count: number }[] | null;
+                const count = Array.isArray(contacts) ? (contacts[0]?.count ?? 0) : 0;
+                return (
+                  <li key={c.id} className="flex items-center justify-between py-3">
+                    <div>
+                      <Link href={`/campaigns/${c.id}`} className="font-medium text-foreground hover:underline">
+                        {c.name}
+                      </Link>
+                      <p className="text-xs text-muted-foreground">
+                        {count} lead{count === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                    <Badge variant={CAMPAIGN_STATUS_VARIANT[c.status]}>{c.status}</Badge>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No calling list yet. Create one to start adding leads for this agent.
+            </p>
+          )}
+        </CardContent>
       </Card>
     </div>
   );

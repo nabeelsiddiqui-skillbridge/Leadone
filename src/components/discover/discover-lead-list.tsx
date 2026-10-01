@@ -20,10 +20,10 @@ const TABS: { value: DiscoveredLeadStatus | "all"; label: string }[] = [
 
 export function DiscoverLeadList({
   leads,
-  campaigns,
+  agents,
 }: {
   leads: LeadCardData[];
-  campaigns: { id: string; name: string; agent_id: string }[];
+  agents: { id: string; name: string }[];
 }) {
   const [tab, setTab] = useState<DiscoveredLeadStatus | "all">("new");
   const [query, setQuery] = useState("");
@@ -81,7 +81,7 @@ export function DiscoverLeadList({
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           {sorted.map((lead) => (
-            <LeadCard key={lead.id} lead={lead} campaigns={campaigns} />
+            <LeadCard key={lead.id} lead={lead} agents={agents} />
           ))}
         </div>
       )}

@@ -168,15 +168,17 @@ export async function rejectLeadAction(leadId: string, reason?: string): Promise
 }
 
 /**
- * Converts an approved lead into a real contact and adds it to an existing
- * calling campaign (LeadOne has no email-sending campaigns today, so this
- * is the one real handoff path). Refuses if the underlying contact is
- * already an active member of a different campaign, so the same lead
- * can't unintentionally end up being worked by two campaigns at once.
+ * Converts an approved lead into a real contact and adds it to the chosen
+ * agent's calling list (LeadOne has no email-sending campaigns today, so
+ * this is the one real handoff path). Campaigns aren't a user-facing
+ * concept anymore - each agent effectively has one calling list, found or
+ * created here rather than picked explicitly. Refuses if the underlying
+ * contact is already an active member of a different agent's calling list,
+ * so the same lead can't unintentionally end up being worked twice.
  */
 export async function convertLeadToCampaignAction(
   leadId: string,
-  campaignId: string,
+  agentId: string,
   phoneOverride?: string
 ): Promise<ActionState> {
   const { workspace } = await requireCurrentWorkspace();
@@ -199,13 +201,50 @@ export async function convertLeadToCampaignAction(
     return { error: "No phone number is known for this lead. Enter one to add it to a calling campaign." };
   }
 
-  const { data: campaign } = await supabase
-    .from("campaigns")
-    .select("id, agent_id")
-    .eq("id", campaignId)
+  const { data: agent } = await supabase
+    .from("agents")
+    .select("id, name")
+    .eq("id", agentId)
     .eq("workspace_id", workspace.id)
     .maybeSingle();
-  if (!campaign) return { error: "Campaign not found." };
+  if (!agent) return { error: "Agent not found." };
+
+  let campaign: { id: string; agent_id: string } | null = null;
+  const { data: existingCampaign } = await supabase
+    .from("campaigns")
+    .select("id, agent_id")
+    .eq("workspace_id", workspace.id)
+    .eq("agent_id", agentId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingCampaign) {
+    campaign = existingCampaign;
+  } else {
+    const { data: newCampaign, error: campaignError } = await supabase
+      .from("campaigns")
+      .insert({
+        workspace_id: workspace.id,
+        agent_id: agentId,
+        name: `${agent.name} - calling list`,
+        status: "draft",
+        timezone_mode: "contact_local",
+        days_of_week: [1, 2, 3, 4, 5],
+        calling_start_time: "09:00",
+        calling_end_time: "18:00",
+        daily_call_limit: 50,
+        concurrency_limit: 2,
+        max_attempts: 3,
+        voicemail_action: "leave_message",
+      })
+      .select("id, agent_id")
+      .single();
+    if (campaignError || !newCampaign) return { error: campaignError?.message ?? "Failed to set up this agent's calling list." };
+    campaign = newCampaign;
+  }
+
+  const campaignId = campaign.id;
 
   const [firstName, ...restName] = (primaryContact?.name ?? "").split(" ").filter(Boolean);
 
@@ -254,7 +293,7 @@ export async function convertLeadToCampaignAction(
   if (activeMemberships && activeMemberships.length > 0) {
     const other = activeMemberships[0].campaign as unknown as { name: string } | null;
     return {
-      error: `This contact is already active in another campaign${other?.name ? ` ("${other.name}")` : ""}. Remove them there first, or wait for that campaign to finish.`,
+      error: `This contact is already being called by another agent${other?.name ? ` ("${other.name}")` : ""}. Remove them there first, or wait for that to finish.`,
     };
   }
 
@@ -285,6 +324,7 @@ export async function convertLeadToCampaignAction(
   if (updateError) return { error: updateError.message };
 
   revalidatePath("/discover");
+  revalidatePath(`/agents/${agentId}`);
   revalidatePath(`/campaigns/${campaignId}`);
-  return { message: "Added to campaign." };
+  return { message: "Added to the agent's calling list." };
 }

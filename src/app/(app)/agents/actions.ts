@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { requireCurrentWorkspace } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { getAgentTemplate, interpolateTemplate } from "@/lib/agent-templates";
 import type { AgentStatus, Database } from "@/lib/supabase/database.types";
 
 type AgentRow = Database["public"]["Tables"]["agents"]["Row"];
@@ -267,6 +268,110 @@ export async function deleteAgentAction(agentId: string): Promise<AgentActionRes
 
   revalidatePath("/agents");
   return {};
+}
+
+export interface ActivateTemplateInput {
+  templateSlug: string;
+  companyName: string;
+  businessDescription: string;
+  extraContext: string;
+}
+
+/**
+ * The "pre-built agent" fast path: turns a template + a couple of answers
+ * about the business into a fully-configured, ready-to-use agent (status
+ * 'active', not 'draft' - it's meant to work immediately), plus a companion
+ * calling list (campaign) so it can actually start dialing once leads are
+ * added. The campaign is real and uses the same infrastructure as the
+ * classic wizard at /campaigns/new - it's just not surfaced as its own nav
+ * section anymore. Reachable afterward from the agent's own detail page.
+ */
+export async function activateAgentTemplateAction(input: ActivateTemplateInput): Promise<AgentActionResult> {
+  const template = getAgentTemplate(input.templateSlug);
+  if (!template) return { error: "Unknown agent template." };
+
+  const companyName = input.companyName.trim();
+  const businessDescription = input.businessDescription.trim();
+  if (!companyName) return { error: "Company name is required." };
+  if (!businessDescription) return { error: "Tell us a bit about your business first." };
+
+  const { workspace } = await requireCurrentWorkspace();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const vars = {
+    company_name: companyName,
+    business_description: businessDescription,
+    extra_context: input.extraContext.trim(),
+  };
+
+  const { data: agent, error: agentError } = await supabase
+    .from("agents")
+    .insert({
+      workspace_id: workspace.id,
+      name: `${template.name} - ${companyName}`,
+      company_name: companyName,
+      agent_role: template.agentRole,
+      persona: template.persona,
+      primary_objective: interpolateTemplate(template.primaryObjective, vars),
+      opening_greeting: interpolateTemplate(template.openingGreeting, vars),
+      system_prompt: interpolateTemplate(template.systemPrompt, vars),
+      conversation_instructions: template.conversationInstructions,
+      qualification_questions: template.qualificationQuestions,
+      objection_handling: template.objectionHandling,
+      closing_instructions: template.closingInstructions,
+      voicemail_message: interpolateTemplate(template.voicemailMessage, vars),
+      language: "en-US",
+      voice: template.voice,
+      response_length: template.responseLength,
+      creativity: template.creativity,
+      interruptions_enabled: template.interruptionsEnabled,
+      appointment_booking_enabled: template.appointmentBookingEnabled,
+      end_call_rules: template.endCallRules,
+      status: "active",
+      created_by: user?.id ?? null,
+    })
+    .select("id")
+    .single();
+
+  if (agentError || !agent) {
+    return { error: agentError?.message ?? "Failed to create agent." };
+  }
+
+  // Companion calling list - draft until leads are actually added, same
+  // sensible defaults the manual campaign wizard starts with.
+  const { data: defaultNumber } = await supabase
+    .from("phone_numbers")
+    .select("id")
+    .eq("workspace_id", workspace.id)
+    .eq("is_default", true)
+    .eq("status", "active")
+    .maybeSingle();
+
+  await supabase.from("campaigns").insert({
+    workspace_id: workspace.id,
+    agent_id: agent.id,
+    phone_number_id: defaultNumber?.id ?? null,
+    name: `${template.name} - ${companyName}`,
+    status: "draft",
+    timezone_mode: "contact_local",
+    days_of_week: [1, 2, 3, 4, 5],
+    calling_start_time: "09:00",
+    calling_end_time: "18:00",
+    daily_call_limit: 50,
+    concurrency_limit: 2,
+    max_attempts: 3,
+    retry_no_answer_minutes: 240,
+    retry_busy_minutes: 60,
+    retry_failed_minutes: 120,
+    voicemail_action: "leave_message",
+    created_by: user?.id ?? null,
+  });
+
+  revalidatePath("/agents");
+  redirect(`/agents/${agent.id}?activated=1`);
 }
 
 export type { AgentRow };
