@@ -210,7 +210,7 @@ export default async function AgentDetailPage({
                         availableContacts={availableContactsFor(c.id)}
                         contactsCapped={false}
                       />
-                      <CampaignDetailActions campaignId={c.id} campaignName={c.name} status={c.status} size="sm" />
+                      <CampaignDetailActions campaignId={c.id} campaignName={c.name} status={c.status} size="sm" compact />
                     </div>
                   </li>
                 );

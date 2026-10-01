@@ -17,51 +17,29 @@ import type { AgentStatus, CampaignStatus, Database } from "@/lib/supabase/datab
 export const metadata: Metadata = { title: "Agents" };
 
 type AgentRow = Database["public"]["Tables"]["agents"]["Row"];
-type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
-const STATUS_VARIANT: Record<AgentStatus, "success" | "secondary" | "outline"> = {
-  active: "success",
-  inactive: "secondary",
-  draft: "outline",
-};
-
-const CAMPAIGN_STATUS_VARIANT: Record<CampaignStatus, "success" | "secondary" | "outline" | "destructive"> = {
-  draft: "outline",
-  scheduled: "secondary",
-  running: "success",
-  paused: "secondary",
-  completed: "secondary",
-  stopped: "secondary",
-  error: "destructive",
-};
-
-/**
- * Counts rows per agent_id for a workspace-scoped table. Supabase-js has no
- * group-by, so this pulls the foreign key column for the workspace's agents
- * and tallies it client-side — fine at tenant scale, avoids an RPC/migration.
- */
-async function countsByAgentId(
-  supabase: SupabaseServerClient,
-  table: "campaigns" | "calls" | "appointments",
-  workspaceId: string,
-  agentIds: string[]
-): Promise<Map<string, number>> {
-  const counts = new Map<string, number>();
-  if (agentIds.length === 0) {
-    return counts;
+/** A single, plain-language summary of what an agent is doing right now. */
+function callingSummary(
+  agentStatus: AgentStatus,
+  campaign: { status: CampaignStatus } | undefined
+): { label: string; variant: "success" | "secondary" | "outline" | "destructive" } {
+  if (agentStatus === "inactive") return { label: "Inactive", variant: "secondary" };
+  if (!campaign) return { label: "Not calling yet", variant: "outline" };
+  switch (campaign.status) {
+    case "running":
+      return { label: "Calling now", variant: "success" };
+    case "scheduled":
+      return { label: "Starting soon", variant: "secondary" };
+    case "paused":
+      return { label: "Paused", variant: "secondary" };
+    case "stopped":
+    case "completed":
+      return { label: "Stopped", variant: "secondary" };
+    case "error":
+      return { label: "Error", variant: "destructive" };
+    default:
+      return { label: "Not calling yet", variant: "outline" };
   }
-
-  const { data } = await supabase
-    .from(table)
-    .select("agent_id")
-    .eq("workspace_id", workspaceId)
-    .in("agent_id", agentIds);
-
-  for (const row of (data ?? []) as { agent_id: string | null }[]) {
-    if (!row.agent_id) continue;
-    counts.set(row.agent_id, (counts.get(row.agent_id) ?? 0) + 1);
-  }
-  return counts;
 }
 
 export default async function AgentsPage() {
@@ -77,25 +55,24 @@ export default async function AgentsPage() {
   const agents: AgentRow[] = agentsData ?? [];
   const agentIds = agents.map((agent) => agent.id);
 
-  const [callCounts, appointmentCounts, { data: agentCampaigns }] = await Promise.all([
-    countsByAgentId(supabase, "calls", workspace.id, agentIds),
-    countsByAgentId(supabase, "appointments", workspace.id, agentIds),
+  const { data: agentCampaigns } =
     agentIds.length > 0
-      ? supabase
+      ? await supabase
           .from("campaigns")
-          .select("id, agent_id, name, status")
+          .select("id, agent_id, name, status, contacts:campaign_contacts(count)")
           .eq("workspace_id", workspace.id)
           .in("agent_id", agentIds)
           .order("created_at", { ascending: false })
-      : Promise.resolve({ data: [] as { id: string; agent_id: string; name: string; status: CampaignStatus }[] }),
-  ]);
+      : { data: [] as { id: string; agent_id: string; name: string; status: CampaignStatus; contacts: { count: number }[] }[] };
 
   // One primary calling list per agent — the most recently created, since
   // that's the one someone just activated a template or added leads to.
-  const primaryCampaignByAgent = new Map<string, { id: string; name: string; status: CampaignStatus }>();
+  const primaryCampaignByAgent = new Map<string, { id: string; name: string; status: CampaignStatus; leadCount: number }>();
   for (const c of agentCampaigns ?? []) {
     if (!c.agent_id || primaryCampaignByAgent.has(c.agent_id)) continue;
-    primaryCampaignByAgent.set(c.agent_id, { id: c.id, name: c.name, status: c.status });
+    const contacts = c.contacts as unknown as { count: number }[] | null;
+    const leadCount = Array.isArray(contacts) ? (contacts[0]?.count ?? 0) : 0;
+    primaryCampaignByAgent.set(c.agent_id, { id: c.id, name: c.name, status: c.status, leadCount });
   }
 
   return (
@@ -139,18 +116,14 @@ export default async function AgentsPage() {
               <TableRow>
                 <TableHead>Agent Name</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Calling Status</TableHead>
-                <TableHead>Voice</TableHead>
-                <TableHead>Language</TableHead>
-                <TableHead>Calls Made</TableHead>
-                <TableHead>Appointments Booked</TableHead>
-                <TableHead>Last Updated</TableHead>
+                <TableHead>Leads</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {agents.map((agent) => {
                 const campaign = primaryCampaignByAgent.get(agent.id);
+                const summary = callingSummary(agent.status, campaign);
                 return (
                   <TableRow key={agent.id}>
                     <TableCell className="font-medium">
@@ -159,30 +132,27 @@ export default async function AgentsPage() {
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={STATUS_VARIANT[agent.status]}>{agent.status}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      {campaign ? (
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant={CAMPAIGN_STATUS_VARIANT[campaign.status]}>{campaign.status}</Badge>
+                      <div className="flex flex-col items-start gap-1.5">
+                        <Badge variant={summary.variant}>{summary.label}</Badge>
+                        {campaign ? (
                           <CampaignDetailActions
                             campaignId={campaign.id}
                             campaignName={campaign.name}
                             status={campaign.status}
                             size="sm"
+                            compact
                           />
-                        </div>
-                      ) : (
-                        <Link href={`/agents/${agent.id}#calling`} className="text-xs text-muted-foreground hover:text-foreground hover:underline">
-                          No calling list — add one
-                        </Link>
-                      )}
+                        ) : (
+                          <Link
+                            href={`/agents/${agent.id}#calling`}
+                            className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+                          >
+                            Add leads
+                          </Link>
+                        )}
+                      </div>
                     </TableCell>
-                    <TableCell>{agent.voice}</TableCell>
-                    <TableCell>{agent.language}</TableCell>
-                    <TableCell>{callCounts.get(agent.id) ?? 0}</TableCell>
-                    <TableCell>{appointmentCounts.get(agent.id) ?? 0}</TableCell>
-                    <TableCell>{new Date(agent.updated_at).toLocaleDateString()}</TableCell>
+                    <TableCell>{campaign?.leadCount ?? 0}</TableCell>
                     <TableCell>
                       <AgentRowActions id={agent.id} status={agent.status} />
                     </TableCell>
