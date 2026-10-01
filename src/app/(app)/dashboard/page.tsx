@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { CallsOverTimeChart, type DailyPoint } from "@/components/analytics/calls-over-time-chart";
 import { StatCard } from "@/components/dashboard/stat-card";
-import { ProgressRing } from "@/components/dashboard/progress-ring";
 import { RecentCallsTimeline, type RecentCallItem } from "@/components/dashboard/recent-calls-timeline";
 import { AgentTemplatesPromo } from "@/components/dashboard/agent-templates-promo";
+import { AgentsCallingTable } from "@/components/agents/agents-calling-table";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -36,7 +36,6 @@ export default async function DashboardPage() {
     { count: activeAgents },
     { data: recentCalls },
     { data: upcomingAppointments },
-    { data: campaignStatusRows },
     { data: recentCallsForAgents },
   ] = await Promise.all([
     supabase.from("calls").select("id", { count: "exact", head: true }).eq("workspace_id", workspace.id),
@@ -65,7 +64,6 @@ export default async function DashboardPage() {
       .gte("starts_at", new Date().toISOString())
       .order("starts_at", { ascending: true })
       .limit(5),
-    supabase.from("campaigns").select("status").eq("workspace_id", workspace.id),
     supabase
       .from("calls")
       .select("agent_id, status, agent:agents(name)")
@@ -90,10 +88,6 @@ export default async function DashboardPage() {
     dailyMap.set(key, point);
   }
   const dailySeries = Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date));
-
-  const totalCampaigns = campaignStatusRows?.length ?? 0;
-  const runningCampaigns = (campaignStatusRows ?? []).filter((c) => c.status === "running").length;
-  const campaignRunningPercent = totalCampaigns > 0 ? (runningCampaigns / totalCampaigns) * 100 : 0;
 
   const agentStats = new Map<string, { name: string; total: number; connected: number }>();
   for (const call of recentCallsForAgents ?? []) {
@@ -147,12 +141,18 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <AgentTemplatesPromo />
-
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {stats.map((stat) => (
           <StatCard key={stat.label} label={stat.label} value={stat.value} icon={stat.icon} accent={stat.accent} />
         ))}
+      </div>
+
+      <div className="flex flex-col gap-4">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">Your Agents</h2>
+          <p className="text-sm text-muted-foreground">Live status and quick controls for every agent.</p>
+        </div>
+        <AgentsCallingTable />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -213,7 +213,7 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Recent Calls</CardTitle>
@@ -230,19 +230,6 @@ export default async function DashboardPage() {
             ) : (
               <RecentCallsTimeline calls={recentCallItems} />
             )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Calling Status</CardTitle>
-            <CardDescription>Share of calling lists currently running</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center gap-4">
-            <ProgressRing percent={campaignRunningPercent} label="Running" />
-            <p className="text-xs text-muted-foreground">
-              {runningCampaigns} of {totalCampaigns} calling list{totalCampaigns === 1 ? "" : "s"} running
-            </p>
           </CardContent>
         </Card>
 
@@ -279,6 +266,8 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <AgentTemplatesPromo />
     </div>
   );
 }
