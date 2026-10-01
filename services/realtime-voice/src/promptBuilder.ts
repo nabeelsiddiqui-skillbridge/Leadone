@@ -6,6 +6,7 @@ Ask one question at a time. Do not deliver long paragraphs and do not sound like
 Do not repeat the caller's name over and over.
 Use contractions naturally (I'm, you're, that's, don't).
 Use light conversational acknowledgements ("Got it.", "Okay.", "Sure.", "Absolutely.", "That makes sense.") but don't overuse them.
+When the caller actually answers a question or gives you real information (a number, a name, a concern, a preference), respond to that specific thing - reference it briefly - before moving on. A bare "Perfect" or "Okay" with nothing else, right after they told you something substantive, reads as not having listened; save the bare acknowledgements for small moments (confirmations, "yes"/"no" answers) where there's nothing to reflect back.
 Avoid stiff, corporate phrasing like "Certainly, I would be delighted to assist," "Thank you for providing that information," or "I completely understand your concern."
 Respond quickly and let the caller interrupt you. If the caller starts talking while you're speaking, stop immediately and listen — do not talk over them.
 Never claim an appointment has been booked unless the book_appointment tool call returns a confirmed result. Never invent calendar availability.
@@ -60,7 +61,11 @@ function contactContext(contact: ContactRecord | null): string {
   return parts.join(" ");
 }
 
-export function buildSystemInstructions(agent: AgentRecord, contact: ContactRecord | null): string {
+export function buildSystemInstructions(
+  agent: AgentRecord,
+  contact: ContactRecord | null,
+  calendarConnected: boolean
+): string {
   const qualificationQuestions = Array.isArray(agent.qualification_questions)
     ? (agent.qualification_questions as unknown[]).filter((q): q is string => typeof q === "string")
     : [];
@@ -79,10 +84,14 @@ export function buildSystemInstructions(agent: AgentRecord, contact: ContactReco
       : null,
     agent.objection_handling ? `If the caller objects or pushes back:\n${agent.objection_handling}` : null,
     agent.closing_instructions ? `How to close the call:\n${agent.closing_instructions}` : null,
-    agent.appointment_booking_enabled
+    // Gated on the workspace's actual calendar connection, not just the
+    // agent's appointment_booking_enabled toggle - telling the model it
+    // CAN book when no calendar is connected is what led it to tell callers
+    // "you're booked" after check_availability/book_appointment came back
+    // "unavailable", with nothing ever written to the appointments table.
+    agent.appointment_booking_enabled && calendarConnected
       ? "You can book appointments. Use check_availability before offering times, and only confirm a booking after book_appointment succeeds."
-      : "You cannot book appointments on this call. If the caller wants to schedule something, offer to have someone follow up and use schedule_callback or save_note."
-    ,
+      : "You cannot book appointments on this call - no calendar is connected, so check_availability and book_appointment will not work. Never tell the caller something is booked or scheduled. If they want to schedule something, offer to have someone follow up and use schedule_callback or save_note.",
     agent.call_transfer_enabled
       ? "If the caller asks for a human, or the conversation needs one, use the transfer_call tool."
       : null,

@@ -29,14 +29,22 @@ export class CallSession {
   private state: CallSessionState;
   private agent: AgentRecord;
   private contact: ContactRecord | null;
+  private calendarConnected: boolean;
   private finalized = false;
   private maxDurationTimer: NodeJS.Timeout | null = null;
 
-  private constructor(twilioWs: WebSocket, state: CallSessionState, agent: AgentRecord, contact: ContactRecord | null) {
+  private constructor(
+    twilioWs: WebSocket,
+    state: CallSessionState,
+    agent: AgentRecord,
+    contact: ContactRecord | null,
+    calendarConnected: boolean
+  ) {
     this.twilioWs = twilioWs;
     this.state = state;
     this.agent = agent;
     this.contact = contact;
+    this.calendarConnected = calendarConnected;
   }
 
   static async start(
@@ -66,6 +74,14 @@ export class CallSession {
       contact = data as ContactRecord | null;
     }
 
+    const { data: calendarConnection } = await db
+      .from("calendar_connections")
+      .select("id")
+      .eq("workspace_id", call.workspace_id)
+      .eq("provider", "google")
+      .eq("status", "connected")
+      .maybeSingle();
+
     const state: CallSessionState = {
       callId,
       workspaceId: call.workspace_id,
@@ -87,7 +103,7 @@ export class CallSession {
       currentTurnLatency: {},
     };
 
-    const session = new CallSession(twilioWs, state, agent, contact);
+    const session = new CallSession(twilioWs, state, agent, contact, !!calendarConnection);
     await session.init();
     return session;
   }
@@ -108,7 +124,7 @@ export class CallSession {
       .eq("id", this.state.callId);
 
     await this.openai.connect({
-      instructions: buildSystemInstructions(this.agent, this.contact),
+      instructions: buildSystemInstructions(this.agent, this.contact, this.calendarConnected),
       voice: this.agent.voice || config.defaultVoice,
       toolsEnabled: true,
       maxOutputTokens: maxOutputTokensForAgent(this.agent),
@@ -226,7 +242,7 @@ export class CallSession {
       this.openai.sendFunctionCallOutput(callId, result);
 
       if (name === "end_call" && this.state.ended) {
-        setTimeout(() => this.finalize(this.state.outcome ?? "completed"), 1500);
+        this.scheduleCallEnd();
       }
     });
 
@@ -290,6 +306,26 @@ export class CallSession {
       event_type: eventType,
       payload,
     });
+  }
+
+  /**
+   * Ends the call only once the agent's current response has actually
+   * finished sending, plus a fixed drain buffer - Twilio plays audio out
+   * over the real phone line in real time, but pushing those bytes to its
+   * websocket happens in a near-instant burst, so closing the connection
+   * the moment we're done *sending* can still cut off the last second or
+   * so of audio Twilio hasn't played yet. If the farewell is still being
+   * sent when end_call fires, wait for it to finish first instead of
+   * racing it.
+   */
+  private scheduleCallEnd() {
+    const DRAIN_MS = 1500;
+    const endNow = () => setTimeout(() => this.finalize(this.state.outcome ?? "completed"), DRAIN_MS);
+    if (this.state.agentSpeaking) {
+      this.openai.once("audioDone", endNow);
+    } else {
+      endNow();
+    }
   }
 
   private async finalize(outcome: string) {

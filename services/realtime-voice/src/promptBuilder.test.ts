@@ -48,68 +48,75 @@ const BASE_CONTACT: ContactRecord = {
 
 describe("buildSystemInstructions", () => {
   it("includes the agent's name, role, and company", () => {
-    const prompt = buildSystemInstructions(BASE_AGENT, BASE_CONTACT);
+    const prompt = buildSystemInstructions(BASE_AGENT, BASE_CONTACT, true);
     expect(prompt).toContain("You are Sarah, Marketing Audit Specialist at Skill Bridge.");
   });
 
   it("includes the contact's name and company when a contact is attached", () => {
-    const prompt = buildSystemInstructions(BASE_AGENT, BASE_CONTACT);
+    const prompt = buildSystemInstructions(BASE_AGENT, BASE_CONTACT, true);
     expect(prompt).toContain("You are calling John Doe.");
     expect(prompt).toContain("They work at Acme Co.");
   });
 
   it("handles a call with no contact attached", () => {
-    const prompt = buildSystemInstructions(BASE_AGENT, null);
+    const prompt = buildSystemInstructions(BASE_AGENT, null, true);
     expect(prompt).toContain("No contact record is attached to this call.");
   });
 
   it("weaves in qualification questions without a robotic list format in the source data", () => {
-    const prompt = buildSystemInstructions(BASE_AGENT, BASE_CONTACT);
+    const prompt = buildSystemInstructions(BASE_AGENT, BASE_CONTACT, true);
     expect(prompt).toContain("What's your monthly ad spend?");
     expect(prompt).toContain("without reading them as a list");
   });
 
   it("tells the model it CAN book appointments when appointment_booking_enabled is true", () => {
-    const prompt = buildSystemInstructions(BASE_AGENT, BASE_CONTACT);
+    const prompt = buildSystemInstructions(BASE_AGENT, BASE_CONTACT, true);
     expect(prompt).toContain("You can book appointments.");
     expect(prompt).not.toContain("You cannot book appointments");
   });
 
   it("tells the model it CANNOT book appointments when appointment_booking_enabled is false", () => {
-    const prompt = buildSystemInstructions({ ...BASE_AGENT, appointment_booking_enabled: false }, BASE_CONTACT);
-    expect(prompt).toContain("You cannot book appointments on this call.");
+    const prompt = buildSystemInstructions({ ...BASE_AGENT, appointment_booking_enabled: false }, BASE_CONTACT, true);
+    expect(prompt).toContain("You cannot book appointments on this call");
+  });
+
+  it("tells the model it CANNOT book appointments when no calendar is connected, even if appointment_booking_enabled is true", () => {
+    const prompt = buildSystemInstructions(BASE_AGENT, BASE_CONTACT, false);
+    expect(prompt).toContain("no calendar is connected");
+    expect(prompt).toContain("Never tell the caller something is booked or scheduled.");
+    expect(prompt).not.toContain("You can book appointments.");
   });
 
   it("always includes the base conversation rules (natural speech, barge-in, no fabrication)", () => {
-    const prompt = buildSystemInstructions(BASE_AGENT, BASE_CONTACT);
+    const prompt = buildSystemInstructions(BASE_AGENT, BASE_CONTACT, true);
     expect(prompt).toContain("Never invent information");
     expect(prompt).toContain("stop immediately and listen");
     expect(prompt).toContain("mark_do_not_call");
   });
 
   it("omits empty/null optional sections instead of leaving blank lines", () => {
-    const prompt = buildSystemInstructions(BASE_AGENT, BASE_CONTACT);
+    const prompt = buildSystemInstructions(BASE_AGENT, BASE_CONTACT, true);
     // persona was null on BASE_AGENT - should never appear as "Persona: null" etc.
     expect(prompt).not.toContain("Persona: null");
     expect(prompt).not.toMatch(/\n{3,}/);
   });
 
   it("includes a reply-length rule matching the agent's response_length setting", () => {
-    const concise = buildSystemInstructions(BASE_AGENT, BASE_CONTACT);
+    const concise = buildSystemInstructions(BASE_AGENT, BASE_CONTACT, true);
     expect(concise).toContain("one short sentence");
 
-    const detailed = buildSystemInstructions({ ...BASE_AGENT, response_length: "detailed" }, BASE_CONTACT);
+    const detailed = buildSystemInstructions({ ...BASE_AGENT, response_length: "detailed" }, BASE_CONTACT, true);
     expect(detailed).toContain("short paragraph at most");
   });
 
   it("includes a tone rule matching the agent's creativity setting (the Realtime API no longer accepts a temperature parameter)", () => {
-    const low = buildSystemInstructions({ ...BASE_AGENT, creativity: 0.1 }, BASE_CONTACT);
+    const low = buildSystemInstructions({ ...BASE_AGENT, creativity: 0.1 }, BASE_CONTACT, true);
     expect(low).toContain("stay close to your scripted talking points");
 
-    const mid = buildSystemInstructions({ ...BASE_AGENT, creativity: 0.5 }, BASE_CONTACT);
+    const mid = buildSystemInstructions({ ...BASE_AGENT, creativity: 0.5 }, BASE_CONTACT, true);
     expect(mid).toContain("vary your wording from call to call");
 
-    const high = buildSystemInstructions({ ...BASE_AGENT, creativity: 0.9 }, BASE_CONTACT);
+    const high = buildSystemInstructions({ ...BASE_AGENT, creativity: 0.9 }, BASE_CONTACT, true);
     expect(high).toContain("add personality and vary your phrasing more freely");
   });
 });

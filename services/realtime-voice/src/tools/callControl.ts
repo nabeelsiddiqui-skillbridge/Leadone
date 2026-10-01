@@ -15,16 +15,19 @@ export async function endCall(ctx: ToolExecutionContext, rawArgs: unknown): Prom
   const parsed = endCallSchema.safeParse(rawArgs);
   if (!parsed.success) return { status: "error", message: `Invalid arguments: ${parsed.error.message}` };
 
+  // Deliberately does NOT hang up via the Twilio REST API here - that used to
+  // happen synchronously in this handler and would terminate the call before
+  // Twilio had actually finished playing out the agent's goodbye (sending
+  // audio bytes to the Twilio websocket is near-instant; Twilio then plays
+  // them out over the real phone line in real time, so an immediate REST
+  // hangup raced ahead of that and cut the farewell off mid-sentence,
+  // confirmed against live call transcripts - "says booked but the call
+  // cuts before saying thanks"). The call loop (callSession.ts) now tears
+  // the connection down itself, after the model's response audio has
+  // actually finished sending plus a drain buffer for Twilio's own
+  // playback queue - see the `end_call` case in wireOpenAIEvents.
   ctx.session.outcome = parsed.data.reason ?? ctx.session.outcome ?? "completed";
-  ctx.session.ended = true; // The call loop checks this flag and tears the sockets down after the current audio finishes playing.
-
-  if (twilioClient && ctx.session.twilioCallSid) {
-    try {
-      await twilioClient.calls(ctx.session.twilioCallSid).update({ status: "completed" });
-    } catch (err) {
-      return { status: "success", message: `Ending the call. (Twilio hangup call failed: ${(err as Error).message}, socket will close it instead.)` };
-    }
-  }
+  ctx.session.ended = true;
 
   return { status: "success", message: "Ending the call now." };
 }
