@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { requireCurrentWorkspace } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -56,7 +57,7 @@ export default async function AnalyticsPage({
   const params = await searchParams;
   const { from, to } = resolveRange(params);
 
-  const [{ data: calls }, { data: contacts }, { data: agents }, { data: campaigns }] = await Promise.all([
+  const [{ data: calls }, { data: contacts }, { data: agents }] = await Promise.all([
     supabase
       .from("calls")
       .select("id, agent_id, campaign_id, status, outcome, duration_seconds, appointment_id, created_at")
@@ -65,7 +66,6 @@ export default async function AnalyticsPage({
       .lt("created_at", to.toISOString()),
     supabase.from("contacts").select("status").eq("workspace_id", workspace.id),
     supabase.from("agents").select("id, name").eq("workspace_id", workspace.id),
-    supabase.from("campaigns").select("id, name").eq("workspace_id", workspace.id),
   ]);
 
   const allCalls = calls ?? [];
@@ -117,15 +117,6 @@ export default async function AnalyticsPage({
     agentStats.set(call.agent_id, s);
   }
 
-  const campaignStats = new Map<string, { calls: number; appointments: number }>();
-  for (const call of allCalls) {
-    if (!call.campaign_id) continue;
-    const s = campaignStats.get(call.campaign_id) ?? { calls: 0, appointments: 0 };
-    s.calls += 1;
-    if (call.appointment_id) s.appointments += 1;
-    campaignStats.set(call.campaign_id, s);
-  }
-
   const stats = [
     { label: "Calls", value: totalCalls },
     { label: "Connection Rate", value: `${connectionRate}%` },
@@ -138,7 +129,7 @@ export default async function AnalyticsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Analytics" description="Performance across every agent and campaign in this workspace." />
+      <PageHeader title="Analytics" description="Performance across every agent in this workspace." />
       <DateRangeFilter />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -195,7 +186,7 @@ export default async function AnalyticsPage({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-base">Agent Performance</CardTitle>
             <CardDescription>Calls and appointments per agent in this range</CardDescription>
@@ -216,40 +207,11 @@ export default async function AnalyticsPage({
                   if (!s) return null;
                   return (
                     <TableRow key={agent.id}>
-                      <TableCell>{agent.name}</TableCell>
-                      <TableCell>{s.calls}</TableCell>
-                      <TableCell>{s.appointments}</TableCell>
-                      <TableCell>{s.calls ? `${((s.appointments / s.calls) * 100).toFixed(1)}%` : "—"}</TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">Campaign Performance</CardTitle>
-            <CardDescription>Calls and appointments per campaign in this range</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Campaign</TableHead>
-                  <TableHead>Calls</TableHead>
-                  <TableHead>Appointments</TableHead>
-                  <TableHead>Conversion</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(campaigns ?? []).map((campaign) => {
-                  const s = campaignStats.get(campaign.id);
-                  if (!s) return null;
-                  return (
-                    <TableRow key={campaign.id}>
-                      <TableCell>{campaign.name}</TableCell>
+                      <TableCell>
+                        <Link href={`/agents/${agent.id}`} className="hover:underline">
+                          {agent.name}
+                        </Link>
+                      </TableCell>
                       <TableCell>{s.calls}</TableCell>
                       <TableCell>{s.appointments}</TableCell>
                       <TableCell>{s.calls ? `${((s.appointments / s.calls) * 100).toFixed(1)}%` : "—"}</TableCell>

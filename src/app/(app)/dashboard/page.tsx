@@ -12,6 +12,7 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { RecentCallsTimeline, type RecentCallItem } from "@/components/dashboard/recent-calls-timeline";
 import { AgentTemplatesPromo } from "@/components/dashboard/agent-templates-promo";
 import { AgentsCallingTable } from "@/components/agents/agents-calling-table";
+import { GettingStartedChecklist } from "@/components/dashboard/getting-started-checklist";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -37,6 +38,9 @@ export default async function DashboardPage() {
     { data: recentCalls },
     { data: upcomingAppointments },
     { data: recentCallsForAgents },
+    { count: totalAgents },
+    { count: totalLeads },
+    { data: firstAgent },
   ] = await Promise.all([
     supabase.from("calls").select("id", { count: "exact", head: true }).eq("workspace_id", workspace.id),
     supabase.from("appointments").select("id", { count: "exact", head: true }).eq("workspace_id", workspace.id),
@@ -71,6 +75,15 @@ export default async function DashboardPage() {
       .gte("created_at", daysAgo(30))
       .not("agent_id", "is", null)
       .limit(500),
+    supabase.from("agents").select("id", { count: "exact", head: true }).eq("workspace_id", workspace.id),
+    supabase.from("campaign_contacts").select("id", { count: "exact", head: true }).eq("workspace_id", workspace.id),
+    supabase
+      .from("agents")
+      .select("id")
+      .eq("workspace_id", workspace.id)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   const { data: recentCallsForChart } = await supabase
@@ -140,6 +153,13 @@ export default async function DashboardPage() {
           </Button>
         </div>
       </div>
+
+      <GettingStartedChecklist
+        hasAgent={(totalAgents ?? 0) > 0}
+        hasLeads={(totalLeads ?? 0) > 0}
+        hasCalls={(totalCalls ?? 0) > 0}
+        agentHref={firstAgent ? `/agents/${firstAgent.id}#calling` : null}
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {stats.map((stat) => (

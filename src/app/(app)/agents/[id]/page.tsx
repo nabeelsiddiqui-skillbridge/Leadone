@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, PhoneCall, Plus, PartyPopper } from "lucide-react";
+import { ArrowLeft, PhoneCall, Plus, PartyPopper, Users, CalendarClock, TrendingUp } from "lucide-react";
 
 import { requireCurrentWorkspace } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -13,6 +13,7 @@ import { AgentForm } from "@/components/agents/agent-form";
 import { AddLeadsDialog } from "@/components/campaigns/add-leads-dialog";
 import { CampaignDetailActions } from "@/components/campaigns/campaign-detail-actions";
 import { RenameCampaignDialog } from "@/components/campaigns/rename-campaign-dialog";
+import { StatCard } from "@/components/dashboard/stat-card";
 import type { AgentStatus, CampaignStatus } from "@/lib/supabase/database.types";
 
 export const metadata: Metadata = { title: "Edit agent" };
@@ -75,6 +76,18 @@ export default async function AgentDetailPage({
   if (agentError || !agent) {
     notFound();
   }
+
+  const [{ count: callsMade }, { count: callsConnected }, { count: appointmentsBooked }] = await Promise.all([
+    supabase.from("calls").select("id", { count: "exact", head: true }).eq("workspace_id", workspace.id).eq("agent_id", id),
+    supabase
+      .from("calls")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspace.id)
+      .eq("agent_id", id)
+      .eq("status", "completed"),
+    supabase.from("appointments").select("id", { count: "exact", head: true }).eq("workspace_id", workspace.id).eq("agent_id", id),
+  ]);
+  const conversionRate = callsMade && callsMade > 0 ? `${(((appointmentsBooked ?? 0) / callsMade) * 100).toFixed(1)}%` : "—";
 
   const campaignIds = (campaigns ?? []).map((c) => c.id);
   const [{ data: existingLinks }, { data: candidateContacts }] = await Promise.all([
@@ -144,9 +157,7 @@ export default async function AgentDetailPage({
           <h1 className="text-2xl font-semibold tracking-tight">{agent.name}</h1>
           <Badge variant={STATUS_VARIANT[agent.status]}>{agent.status}</Badge>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Edit this agent&apos;s persona, conversation behavior, and knowledge.
-        </p>
+        <p className="text-sm text-muted-foreground">Status, calling activity, and performance for this agent.</p>
       </div>
 
       {activated === "1" && (
@@ -159,12 +170,12 @@ export default async function AgentDetailPage({
         </Alert>
       )}
 
-      <AgentForm
-        mode="edit"
-        agentId={agent.id}
-        defaultValues={defaultValues}
-        knowledgeBases={knowledgeBases ?? []}
-      />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+        <StatCard label="Calls Made" value={callsMade ?? 0} icon={PhoneCall} accent />
+        <StatCard label="Connected" value={callsConnected ?? 0} icon={Users} />
+        <StatCard label="Appointments Booked" value={appointmentsBooked ?? 0} icon={CalendarClock} />
+        <StatCard label="Conversion Rate" value={conversionRate} icon={TrendingUp} />
+      </div>
 
       <Card id="calling">
         <CardHeader>
@@ -223,6 +234,19 @@ export default async function AgentDetailPage({
           )}
         </CardContent>
       </Card>
+
+      <div className="flex flex-col gap-4">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">Agent Settings</h2>
+          <p className="text-sm text-muted-foreground">Edit this agent&apos;s persona, conversation behavior, and knowledge.</p>
+        </div>
+        <AgentForm
+          mode="edit"
+          agentId={agent.id}
+          defaultValues={defaultValues}
+          knowledgeBases={knowledgeBases ?? []}
+        />
+      </div>
     </div>
   );
 }
