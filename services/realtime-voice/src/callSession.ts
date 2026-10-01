@@ -29,22 +29,14 @@ export class CallSession {
   private state: CallSessionState;
   private agent: AgentRecord;
   private contact: ContactRecord | null;
-  private calendarConnected: boolean;
   private finalized = false;
   private maxDurationTimer: NodeJS.Timeout | null = null;
 
-  private constructor(
-    twilioWs: WebSocket,
-    state: CallSessionState,
-    agent: AgentRecord,
-    contact: ContactRecord | null,
-    calendarConnected: boolean
-  ) {
+  private constructor(twilioWs: WebSocket, state: CallSessionState, agent: AgentRecord, contact: ContactRecord | null) {
     this.twilioWs = twilioWs;
     this.state = state;
     this.agent = agent;
     this.contact = contact;
-    this.calendarConnected = calendarConnected;
   }
 
   static async start(
@@ -74,14 +66,6 @@ export class CallSession {
       contact = data as ContactRecord | null;
     }
 
-    const { data: calendarConnection } = await db
-      .from("calendar_connections")
-      .select("id")
-      .eq("workspace_id", call.workspace_id)
-      .eq("provider", "google")
-      .eq("status", "connected")
-      .maybeSingle();
-
     const state: CallSessionState = {
       callId,
       workspaceId: call.workspace_id,
@@ -103,7 +87,7 @@ export class CallSession {
       currentTurnLatency: {},
     };
 
-    const session = new CallSession(twilioWs, state, agent, contact, !!calendarConnection);
+    const session = new CallSession(twilioWs, state, agent, contact);
     await session.init();
     return session;
   }
@@ -124,7 +108,7 @@ export class CallSession {
       .eq("id", this.state.callId);
 
     await this.openai.connect({
-      instructions: buildSystemInstructions(this.agent, this.contact, this.calendarConnected),
+      instructions: buildSystemInstructions(this.agent, this.contact),
       voice: this.agent.voice || config.defaultVoice,
       toolsEnabled: true,
       maxOutputTokens: maxOutputTokensForAgent(this.agent),

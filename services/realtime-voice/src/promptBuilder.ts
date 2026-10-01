@@ -63,11 +63,7 @@ function contactContext(contact: ContactRecord | null): string {
   return parts.join(" ");
 }
 
-export function buildSystemInstructions(
-  agent: AgentRecord,
-  contact: ContactRecord | null,
-  calendarConnected: boolean
-): string {
+export function buildSystemInstructions(agent: AgentRecord, contact: ContactRecord | null): string {
   const qualificationQuestions = Array.isArray(agent.qualification_questions)
     ? (agent.qualification_questions as unknown[]).filter((q): q is string => typeof q === "string")
     : [];
@@ -86,14 +82,14 @@ export function buildSystemInstructions(
       : null,
     agent.objection_handling ? `If the caller objects or pushes back:\n${agent.objection_handling}` : null,
     agent.closing_instructions ? `How to close the call:\n${agent.closing_instructions}` : null,
-    // Gated on the workspace's actual calendar connection, not just the
-    // agent's appointment_booking_enabled toggle - telling the model it
-    // CAN book when no calendar is connected is what led it to tell callers
-    // "you're booked" after check_availability/book_appointment came back
-    // "unavailable", with nothing ever written to the appointments table.
-    agent.appointment_booking_enabled && calendarConnected
-      ? "You can book appointments. Use check_availability before offering times, and only confirm a booking after book_appointment succeeds."
-      : "You cannot book appointments on this call - no calendar is connected, so check_availability and book_appointment will not work. Never tell the caller something is booked or scheduled. If they want to schedule something, offer to have someone follow up and use schedule_callback or save_note.",
+    // book_appointment always saves to LeadOne's own appointments table
+    // regardless of whether a calendar is connected - check_availability's
+    // own tool result tells the model whether real calendar conflict-
+    // checking is available or it should just offer a time the caller
+    // wants, so the static instructions don't need to branch on that here.
+    agent.appointment_booking_enabled
+      ? "You can book appointments. Call check_availability first - its result will tell you whether there's a real calendar to check or whether you should just offer a time the caller wants. Only confirm a booking after book_appointment succeeds."
+      : "You cannot book appointments on this call. If the caller wants to schedule something, offer to have someone follow up and use schedule_callback or save_note.",
     agent.call_transfer_enabled
       ? "If the caller asks for a human, or the conversation needs one, use the transfer_call tool."
       : null,

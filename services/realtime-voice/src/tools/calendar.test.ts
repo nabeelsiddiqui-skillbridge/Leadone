@@ -1,7 +1,32 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 import { bookAppointment } from "./calendar.js";
 import type { ToolExecutionContext } from "../types.js";
+
+// bookAppointment must always save to LeadOne's own appointments table even
+// when no Google Calendar is connected (see getGoogleClient's db.from(
+// "calendar_connections") lookup returning no row) - this stubs just enough
+// of the chainable Supabase query builder to prove that path end to end
+// without a real network call, mirroring the two call shapes bookAppointment
+// actually uses: a single `.maybeSingle()` lookup, and an `.insert().select().single()`.
+// vi.mock calls are hoisted above these imports by Vitest's transform.
+vi.mock("../db.js", () => {
+  const calendarConnectionsBuilder = {
+    select: () => calendarConnectionsBuilder,
+    eq: () => calendarConnectionsBuilder,
+    maybeSingle: async () => ({ data: null, error: null }),
+  };
+  const appointmentsBuilder = {
+    insert: () => appointmentsBuilder,
+    select: () => appointmentsBuilder,
+    single: async () => ({ data: { id: "appointment-1" }, error: null }),
+  };
+  return {
+    db: {
+      from: (table: string) => (table === "appointments" ? appointmentsBuilder : calendarConnectionsBuilder),
+    },
+  };
+});
 
 /**
  * bookAppointment's "only book a slot check_availability actually returned"
@@ -10,7 +35,7 @@ import type { ToolExecutionContext } from "../types.js";
  * "never invent calendar availability."
  */
 describe("bookAppointment guardrail", () => {
-  const baseContext = (lastCheckedSlots: Array<{ start: string; end: string }>): ToolExecutionContext => ({
+  const baseContext = (lastCheckedSlots: Array<{ start: string; end: string }> | undefined): ToolExecutionContext => ({
     session: {
       callId: "call-1",
       workspaceId: "ws-1",
@@ -108,5 +133,24 @@ describe("bookAppointment guardrail", () => {
     const result = await bookAppointment(ctx, { starts_at: "not-a-date", ends_at: "also-not-a-date" });
     expect(result.status).toBe("error");
     expect(result.message).toContain("valid, ordered datetimes");
+  });
+
+  it("saves the appointment even with no calendar connected and no prior check_availability call, instead of erroring", async () => {
+    // lastCheckedSlots is undefined (never called check_availability this
+    // call, or it returned "no calendar connected") - unlike the `[]` case
+    // above, there's nothing to validate the time against, so this must not
+    // hit the "wasn't in the availability you just checked" guard. This is
+    // the fix for "agent confirms a booking but it's not on the appointments
+    // page" when no Google Calendar is connected: book_appointment now
+    // always writes to the appointments table regardless.
+    const ctx = baseContext(undefined);
+
+    const result = await bookAppointment(ctx, {
+      starts_at: "2026-01-05T14:00:00.000Z",
+      ends_at: "2026-01-05T14:30:00.000Z",
+    });
+
+    expect(result.status).toBe("success");
+    expect(result.data).toMatchObject({ appointment_id: "appointment-1", calendar_synced: false });
   });
 });

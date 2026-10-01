@@ -99,9 +99,14 @@ export async function checkAvailability(ctx: ToolExecutionContext, rawArgs: unkn
 
   const client = await getGoogleClient(ctx.session.workspaceId);
   if (!client) {
+    // No live calendar to check real free/busy against - but the caller's
+    // requested time still gets saved as an appointment via book_appointment
+    // below (just without conflict-checking), so this is not a dead end.
     return {
-      status: "unavailable",
-      message: "This business hasn't connected a calendar yet, so I can't check real availability right now. Offer to have someone follow up instead.",
+      status: "success",
+      message:
+        "No calendar is connected, so there's no real availability to check. Offer a time based on what the caller wants, and call book_appointment directly with it - it'll be saved and someone will confirm it.",
+      data: { calendarConnected: false },
     };
   }
 
@@ -168,42 +173,55 @@ export async function bookAppointment(ctx: ToolExecutionContext, rawArgs: unknow
     return { status: "error", message: "starts_at/ends_at must be valid, ordered datetimes." };
   }
 
-  // Guardrail: only allow booking a slot this call actually confirmed was
-  // free via check_availability, matching the spec's "never invent calendar
-  // availability" rule.
-  const checked = ctx.session.appointmentState.lastCheckedSlots ?? [];
-  const matchesChecked = checked.some(
-    (slot) => slot.start === startsAt.toISOString() && slot.end === endsAt.toISOString()
-  );
-  if (!matchesChecked) {
-    return {
-      status: "error",
-      message: "That time wasn't in the availability you just checked. Call check_availability again and offer one of the returned slots.",
-    };
+  // Guardrail: if this call actually checked real calendar availability,
+  // only allow booking a slot that check confirmed was free - matching the
+  // "never invent calendar availability" rule. If there was nothing to check
+  // against (no calendar connected, so check_availability returned no real
+  // slot data), there's nothing to validate the time against; it's saved as
+  // a requested time instead, see below.
+  const checked = ctx.session.appointmentState.lastCheckedSlots;
+  if (checked) {
+    const matchesChecked = checked.some(
+      (slot) => slot.start === startsAt.toISOString() && slot.end === endsAt.toISOString()
+    );
+    if (!matchesChecked) {
+      return {
+        status: "error",
+        message: "That time wasn't in the availability you just checked. Call check_availability again and offer one of the returned slots.",
+      };
+    }
   }
 
-  const client = await getGoogleClient(ctx.session.workspaceId);
-  if (!client) {
-    return {
-      status: "unavailable",
-      message: "This business hasn't connected a calendar yet, so I can't confirm a real booking. Offer to have someone follow up instead.",
-    };
-  }
-
-  const calendar = google.calendar({ version: "v3", auth: client.oauth2Client });
   const contactName = [ctx.contact.first_name, ctx.contact.last_name].filter(Boolean).join(" ") || "Lead";
   const title = parsed.data.title || `${ctx.agent.name} call with ${contactName}`;
 
-  const event = await calendar.events.insert({
-    calendarId: client.calendarId,
-    requestBody: {
-      summary: title,
-      description: `Booked automatically by LeadOne agent "${ctx.agent.name}" during call ${ctx.session.callId}.`,
-      start: { dateTime: startsAt.toISOString() },
-      end: { dateTime: endsAt.toISOString() },
-      attendees: ctx.contact.email ? [{ email: ctx.contact.email, displayName: contactName }] : undefined,
-    },
-  });
+  // The appointments table is the source of truth regardless of calendar
+  // sync - a caller's requested meeting must be saved and visible in the
+  // app even when no Google Calendar is connected, or when the calendar
+  // sync call below fails. Calendar sync is a best-effort extra on top.
+  let externalEventId: string | null = null;
+  let calendarSynced = false;
+  const client = await getGoogleClient(ctx.session.workspaceId);
+  if (client) {
+    try {
+      const calendar = google.calendar({ version: "v3", auth: client.oauth2Client });
+      const event = await calendar.events.insert({
+        calendarId: client.calendarId,
+        requestBody: {
+          summary: title,
+          description: `Booked automatically by LeadOne agent "${ctx.agent.name}" during call ${ctx.session.callId}.`,
+          start: { dateTime: startsAt.toISOString() },
+          end: { dateTime: endsAt.toISOString() },
+          attendees: ctx.contact.email ? [{ email: ctx.contact.email, displayName: contactName }] : undefined,
+        },
+      });
+      externalEventId = event.data.id ?? null;
+      calendarSynced = true;
+    } catch {
+      // Calendar sync failed (expired token, API error, etc.) - still save
+      // the appointment itself below rather than losing the booking.
+    }
+  }
 
   const { data: appointment, error } = await db
     .from("appointments")
@@ -218,16 +236,22 @@ export async function bookAppointment(ctx: ToolExecutionContext, rawArgs: unknow
       ends_at: endsAt.toISOString(),
       timezone: ctx.contact.timezone ?? "UTC",
       status: "scheduled",
-      external_event_id: event.data.id ?? null,
+      external_event_id: externalEventId,
       created_from_call: true,
     })
     .select("id")
     .single();
 
-  if (error) return { status: "error", message: `Calendar event created but saving the appointment failed: ${error.message}` };
+  if (error) return { status: "error", message: `Saving the appointment failed: ${error.message}` };
 
   ctx.session.appointmentState.bookedAppointmentId = appointment.id;
-  return { status: "success", message: "Appointment booked and confirmed.", data: { appointment_id: appointment.id } };
+  return {
+    status: "success",
+    message: calendarSynced
+      ? "Appointment booked and confirmed on the calendar."
+      : "Appointment saved. Tell the caller it's booked and someone will confirm the details shortly.",
+    data: { appointment_id: appointment.id, calendar_synced: calendarSynced },
+  };
 }
 
 const rescheduleSchema = z.object({
