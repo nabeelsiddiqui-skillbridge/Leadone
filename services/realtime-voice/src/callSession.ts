@@ -110,7 +110,6 @@ export class CallSession {
     await this.openai.connect({
       instructions: buildSystemInstructions(this.agent, this.contact),
       voice: this.agent.voice || config.defaultVoice,
-      temperature: this.agent.creativity ?? 0.3,
       toolsEnabled: true,
       maxOutputTokens: maxOutputTokensForAgent(this.agent),
       interruptOnSpeech: this.agent.interruptions_enabled,

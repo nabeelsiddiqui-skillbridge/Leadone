@@ -16,5 +16,5 @@ export const config = {
   twilioAccountSid: process.env.TWILIO_ACCOUNT_SID ?? "",
   twilioAuthToken: process.env.TWILIO_AUTH_TOKEN ?? "",
   defaultRealtimeModel: process.env.OPENAI_REALTIME_MODEL ?? "gpt-realtime",
-  defaultVoice: process.env.OPENAI_REALTIME_VOICE ?? "alloy",
+  defaultVoice: process.env.OPENAI_REALTIME_VOICE ?? "marin",
 } as const;

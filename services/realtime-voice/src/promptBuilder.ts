@@ -21,6 +21,22 @@ const RESPONSE_LENGTH_RULES: Record<AgentRecord["response_length"], string> = {
     "Reply length: you may give a fuller explanation when the caller asks for detail, but keep it to a short paragraph at most and stay on the single point being discussed — never wander across multiple topics in one turn.",
 };
 
+/**
+ * The Realtime API's GA session format dropped the `temperature` parameter
+ * entirely (see openaiRealtime.ts), so "creativity" can no longer be
+ * enforced at the API level — this is the replacement: a prompt-level
+ * instruction on how tightly to stick to the script versus vary wording.
+ */
+function creativityRule(creativity: number): string {
+  if (creativity <= 0.33) {
+    return "Tone: stay close to your scripted talking points and instructions. Favor consistent, predictable wording over improvising — accuracy and repeatability matter more than variety here.";
+  }
+  if (creativity <= 0.66) {
+    return "Tone: speak naturally and vary your wording from call to call, while staying on-message and sticking to your instructions.";
+  }
+  return "Tone: add personality and vary your phrasing more freely - be warm, conversational, and a little more spontaneous - while never contradicting your instructions or inventing facts.";
+}
+
 /** Session-level hard cap matching the response_length rule above, so verbosity is enforced by the API itself and not just requested in the prompt. */
 export function maxOutputTokensForAgent(agent: AgentRecord): number | "inf" {
   switch (agent.response_length) {
@@ -74,6 +90,7 @@ export function buildSystemInstructions(agent: AgentRecord, contact: ContactReco
     "Use the search_knowledge_base tool when the caller asks something factual about the business (pricing, services, policies) that you're not certain about from these instructions alone.",
     BASE_CONVERSATION_RULES,
     RESPONSE_LENGTH_RULES[agent.response_length],
+    creativityRule(agent.creativity),
   ];
 
   return sections.filter(Boolean).join("\n\n");

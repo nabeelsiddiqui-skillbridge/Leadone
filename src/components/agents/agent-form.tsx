@@ -91,7 +91,7 @@ const DEFAULT_VALUES: FormValues = {
   primary_objective: "",
   language: "en-US",
   accent: "",
-  voice: "alloy",
+  voice: "marin",
   opening_greeting: "",
   system_prompt: "",
   conversation_instructions: "",

@@ -7,7 +7,6 @@ import { TOOL_DEFINITIONS } from "./tools/index.js";
 export interface RealtimeSessionOptions {
   instructions: string;
   voice: string;
-  temperature: number;
   toolsEnabled: boolean;
   /** Hard cap on a single response's length, per the agent's response_length setting — see promptBuilder.maxOutputTokensForAgent. */
   maxOutputTokens: number | "inf";
@@ -78,7 +77,8 @@ export class OpenAIRealtimeSession extends EventEmitter {
     // flat "g711_ulaw" string), renames modalities -> output_modalities (and
     // audio+text together is no longer offered - "audio" alone already
     // includes a transcript), and drops the old top-level `temperature` field
-    // entirely (not part of the GA session schema).
+    // entirely (not part of the GA session schema) - see promptBuilder's
+    // creativityRule() for where "creativity" is actually enforced now.
     this.send({
       type: "session.update",
       session: {

@@ -101,6 +101,17 @@ describe("buildSystemInstructions", () => {
     const detailed = buildSystemInstructions({ ...BASE_AGENT, response_length: "detailed" }, BASE_CONTACT);
     expect(detailed).toContain("short paragraph at most");
   });
+
+  it("includes a tone rule matching the agent's creativity setting (the Realtime API no longer accepts a temperature parameter)", () => {
+    const low = buildSystemInstructions({ ...BASE_AGENT, creativity: 0.1 }, BASE_CONTACT);
+    expect(low).toContain("stay close to your scripted talking points");
+
+    const mid = buildSystemInstructions({ ...BASE_AGENT, creativity: 0.5 }, BASE_CONTACT);
+    expect(mid).toContain("vary your wording from call to call");
+
+    const high = buildSystemInstructions({ ...BASE_AGENT, creativity: 0.9 }, BASE_CONTACT);
+    expect(high).toContain("add personality and vary your phrasing more freely");
+  });
 });
 
 describe("maxOutputTokensForAgent", () => {
