@@ -18,6 +18,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { CampaignStatusBadge } from "@/components/campaigns/campaign-status-badge";
 import { CampaignDetailActions } from "@/components/campaigns/campaign-detail-actions";
 import { AddLeadsDialog } from "@/components/campaigns/add-leads-dialog";
+import { RenameCampaignDialog } from "@/components/campaigns/rename-campaign-dialog";
 
 const AVAILABLE_CONTACTS_LIMIT = 200;
 
@@ -105,6 +106,7 @@ export default async function CampaignDetailPage({
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-semibold tracking-tight">{campaign.name}</h1>
+            <RenameCampaignDialog campaignId={campaign.id} currentName={campaign.name} />
             <CampaignStatusBadge status={campaign.status} />
           </div>
           {campaign.description && (
@@ -122,7 +124,12 @@ export default async function CampaignDetailPage({
             {" · "}Number: {phoneNumber?.phone_number ?? "Not assigned"}
           </p>
         </div>
-        <CampaignDetailActions campaignId={campaign.id} campaignName={campaign.name} status={campaign.status} />
+        <CampaignDetailActions
+          campaignId={campaign.id}
+          campaignName={campaign.name}
+          status={campaign.status}
+          redirectAfterDeleteHref={agent ? `/agents/${agent.id}` : "/agents"}
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">

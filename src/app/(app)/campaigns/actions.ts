@@ -256,6 +256,25 @@ export async function startCampaignAction(campaignId: string): Promise<ActionRes
   return {};
 }
 
+export async function renameCampaignAction(campaignId: string, name: string): Promise<ActionResult> {
+  const trimmed = name.trim();
+  if (!trimmed) return { error: "Name is required." };
+  const { supabase, campaign, workspace } = await loadOwnedCampaign(campaignId);
+  if (!campaign) return { error: "Campaign not found." };
+
+  const { error } = await supabase
+    .from("campaigns")
+    .update({ name: trimmed })
+    .eq("id", campaignId)
+    .eq("workspace_id", workspace.id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/campaigns");
+  revalidatePath(`/campaigns/${campaignId}`);
+  if (campaign.agent_id) revalidatePath(`/agents/${campaign.agent_id}`);
+  return {};
+}
+
 export async function stopCampaignAction(campaignId: string): Promise<ActionResult> {
   const { supabase, campaign, workspace } = await loadOwnedCampaign(campaignId);
   if (!campaign) return { error: "Campaign not found." };
@@ -288,6 +307,7 @@ export async function deleteCampaignAction(campaignId: string): Promise<ActionRe
     .eq("workspace_id", workspace.id);
   if (error) return { error: error.message };
   revalidatePath("/campaigns");
+  if (campaign.agent_id) revalidatePath(`/agents/${campaign.agent_id}`);
   return {};
 }
 

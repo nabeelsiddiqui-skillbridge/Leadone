@@ -10,9 +10,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AgentForm } from "@/components/agents/agent-form";
+import { AddLeadsDialog } from "@/components/campaigns/add-leads-dialog";
+import { CampaignDetailActions } from "@/components/campaigns/campaign-detail-actions";
+import { RenameCampaignDialog } from "@/components/campaigns/rename-campaign-dialog";
 import type { AgentStatus, CampaignStatus } from "@/lib/supabase/database.types";
 
 export const metadata: Metadata = { title: "Edit agent" };
+
+const AVAILABLE_CONTACTS_LIMIT = 200;
 
 const STATUS_VARIANT: Record<AgentStatus, "success" | "secondary" | "outline"> = {
   active: "success",
@@ -69,6 +74,31 @@ export default async function AgentDetailPage({
   // means the agent doesn't exist or isn't in this workspace — either way, 404.
   if (agentError || !agent) {
     notFound();
+  }
+
+  const campaignIds = (campaigns ?? []).map((c) => c.id);
+  const [{ data: existingLinks }, { data: candidateContacts }] = await Promise.all([
+    campaignIds.length > 0
+      ? supabase.from("campaign_contacts").select("campaign_id, contact_id").in("campaign_id", campaignIds)
+      : Promise.resolve({ data: [] as { campaign_id: string; contact_id: string }[] }),
+    supabase
+      .from("contacts")
+      .select("id, first_name, last_name, company, phone, email")
+      .eq("workspace_id", workspace.id)
+      .order("created_at", { ascending: false })
+      .limit(500),
+  ]);
+
+  const linksByCampaign = new Map<string, Set<string>>();
+  for (const link of existingLinks ?? []) {
+    const set = linksByCampaign.get(link.campaign_id) ?? new Set<string>();
+    set.add(link.contact_id);
+    linksByCampaign.set(link.campaign_id, set);
+  }
+
+  function availableContactsFor(campaignId: string) {
+    const excluded = linksByCampaign.get(campaignId) ?? new Set<string>();
+    return (candidateContacts ?? []).filter((c) => !excluded.has(c.id)).slice(0, AVAILABLE_CONTACTS_LIMIT);
   }
 
   const linkedIds = new Set((linkedKnowledgeBases ?? []).map((row) => row.knowledge_base_id));
@@ -159,16 +189,29 @@ export default async function AgentDetailPage({
                 const contacts = c.contacts as unknown as { count: number }[] | null;
                 const count = Array.isArray(contacts) ? (contacts[0]?.count ?? 0) : 0;
                 return (
-                  <li key={c.id} className="flex items-center justify-between py-3">
-                    <div>
-                      <Link href={`/campaigns/${c.id}`} className="font-medium text-foreground hover:underline">
-                        {c.name}
-                      </Link>
-                      <p className="text-xs text-muted-foreground">
-                        {count} lead{count === 1 ? "" : "s"}
-                      </p>
+                  <li key={c.id} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1">
+                        <Link href={`/campaigns/${c.id}`} className="font-medium text-foreground hover:underline">
+                          {c.name}
+                        </Link>
+                        <RenameCampaignDialog campaignId={c.id} currentName={c.name} />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={CAMPAIGN_STATUS_VARIANT[c.status]}>{c.status}</Badge>
+                        <p className="text-xs text-muted-foreground">
+                          {count} lead{count === 1 ? "" : "s"}
+                        </p>
+                      </div>
                     </div>
-                    <Badge variant={CAMPAIGN_STATUS_VARIANT[c.status]}>{c.status}</Badge>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <AddLeadsDialog
+                        campaignId={c.id}
+                        availableContacts={availableContactsFor(c.id)}
+                        contactsCapped={false}
+                      />
+                      <CampaignDetailActions campaignId={c.id} campaignName={c.name} status={c.status} size="sm" />
+                    </div>
                   </li>
                 );
               })}
