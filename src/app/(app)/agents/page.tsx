@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { EmptyState } from "@/components/shared/empty-state";
 import { AgentRowActions } from "@/components/agents/agent-row-actions";
+import { TemplateCard } from "@/components/agents/template-card";
+import { AGENT_TEMPLATES } from "@/lib/agent-templates";
 import type { AgentStatus, Database } from "@/lib/supabase/database.types";
 
 export const metadata: Metadata = { title: "Agents" };
@@ -80,22 +81,33 @@ export default async function AgentsPage() {
             Your AI personas — each one ready to answer calls and chats on its own.
           </p>
         </div>
-        <Button asChild>
-          <Link href="/agents/templates">
-            <Sparkles /> New agent
-          </Link>
+        <Button asChild variant="outline">
+          <Link href="/agents/new">Build from scratch</Link>
         </Button>
       </div>
 
-      {agents.length === 0 ? (
-        <EmptyState
-          title="No agents yet"
-          description="Pick a pre-built role - Sales, Support, Appointment Setter, and more - and it's ready to start calling in minutes."
-          actionHref="/agents/templates"
-          actionLabel="Browse pre-built agents"
-        />
-      ) : (
-        <Card className="overflow-hidden py-0">
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">Pre-built AI Agents</h2>
+          <span className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+            <Sparkles className="size-3" /> Ready in minutes
+          </span>
+        </div>
+        <p className="-mt-2 max-w-2xl text-sm text-muted-foreground">
+          Pick the role you need - every prompt, question, and objection response is already written. Tell it about your
+          business and it&apos;s ready to start calling.
+        </p>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {AGENT_TEMPLATES.map((template) => (
+            <TemplateCard key={template.slug} templateSlug={template.slug} />
+          ))}
+        </div>
+      </div>
+
+      {agents.length > 0 && (
+        <div className="flex flex-col gap-4">
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">Your Agents</h2>
+          <Card className="overflow-hidden py-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -134,7 +146,8 @@ export default async function AgentsPage() {
               ))}
             </TableBody>
           </Table>
-        </Card>
+          </Card>
+        </div>
       )}
     </div>
   );
