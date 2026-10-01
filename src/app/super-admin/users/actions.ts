@@ -73,6 +73,75 @@ export async function setUserStatusAction(
  * profiles(id) on delete restrict) will fail with a clear Postgres error,
  * which is surfaced to the caller rather than worked around here.
  */
+/**
+ * Triggers the same "forgot password" email a user would send themselves,
+ * on an admin's behalf. Still goes through Supabase Auth's configured
+ * email delivery, so it inherits whatever SMTP is set up for the project.
+ */
+export async function sendPasswordResetEmailAction(userId: string): Promise<AdminActionResult> {
+  const { user: admin } = await requireSuperAdmin();
+
+  const serviceClient = createServiceRoleClient();
+  const { data: userData, error: lookupError } = await serviceClient.auth.admin.getUserById(userId);
+  if (lookupError || !userData.user?.email) {
+    return { error: "Could not find an email address for this user." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(userData.user.email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/reset-password`,
+  });
+  if (error) {
+    return { error: error.message };
+  }
+
+  const { error: auditError } = await supabase.from("admin_audit_logs").insert({
+    admin_id: admin.id,
+    action: "user.password_reset_email_sent",
+    target_type: "user",
+    target_id: userId,
+    metadata: {},
+  });
+  if (auditError) {
+    return { error: `Reset email sent, but the audit log entry failed: ${auditError.message}` };
+  }
+
+  return { message: `Reset link sent to ${userData.user.email}.` };
+}
+
+/**
+ * Sets a user's password directly, bypassing email entirely — useful when
+ * SMTP isn't configured yet, or the user can't access their inbox. The
+ * password itself is never written to the audit log.
+ */
+export async function setUserPasswordAction(userId: string, newPassword: string): Promise<AdminActionResult> {
+  const { user: admin } = await requireSuperAdmin();
+
+  if (newPassword.length < 8) {
+    return { error: "Password must be at least 8 characters." };
+  }
+
+  const serviceClient = createServiceRoleClient();
+  const { error } = await serviceClient.auth.admin.updateUserById(userId, { password: newPassword });
+  if (error) {
+    return { error: error.message };
+  }
+
+  const supabase = await createClient();
+  const { error: auditError } = await supabase.from("admin_audit_logs").insert({
+    admin_id: admin.id,
+    action: "user.password_set_by_admin",
+    target_type: "user",
+    target_id: userId,
+    metadata: {},
+  });
+  if (auditError) {
+    return { error: `Password updated, but the audit log entry failed: ${auditError.message}` };
+  }
+
+  return { message: "Password updated." };
+}
+
 export async function deleteUserAction(userId: string): Promise<AdminActionResult> {
   const { user: admin } = await requireSuperAdmin();
 

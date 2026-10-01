@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UserDetailActions } from "@/components/super-admin/user-detail-actions";
+import { ResetPasswordDialog } from "@/components/super-admin/reset-password-dialog";
 import { ChangePlanButtons } from "@/components/super-admin/change-plan-buttons";
 import { CustomPlanPanel } from "@/components/super-admin/custom-plan-panel";
 
@@ -178,12 +179,15 @@ export default async function SuperAdminUserDetailPage({
             </h1>
             <p className="text-sm text-muted-foreground">{email ?? "Email unavailable"}</p>
           </div>
-          <UserDetailActions
-            userId={profile.id}
-            fullName={profile.full_name}
-            status={profile.status}
-            isSelf={profile.id === admin.id}
-          />
+          <div className="flex items-center gap-2">
+            <ResetPasswordDialog userId={profile.id} email={email} />
+            <UserDetailActions
+              userId={profile.id}
+              fullName={profile.full_name}
+              status={profile.status}
+              isSelf={profile.id === admin.id}
+            />
+          </div>
         </div>
       </div>
 
