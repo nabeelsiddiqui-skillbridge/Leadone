@@ -17,6 +17,9 @@ import {
 import { EmptyState } from "@/components/shared/empty-state";
 import { CampaignStatusBadge } from "@/components/campaigns/campaign-status-badge";
 import { CampaignDetailActions } from "@/components/campaigns/campaign-detail-actions";
+import { AddLeadsDialog } from "@/components/campaigns/add-leads-dialog";
+
+const AVAILABLE_CONTACTS_LIMIT = 200;
 
 export const metadata: Metadata = { title: "Campaign" };
 
@@ -46,7 +49,7 @@ export default async function CampaignDetailPage({
   const agent = campaign.agent as unknown as { id: string; name: string } | null;
   const phoneNumber = campaign.phone_number as unknown as { id: string; phone_number: string } | null;
 
-  const [{ data: leads }, { data: calls }] = await Promise.all([
+  const [{ data: leads }, { data: calls }, { data: existingLinks }, { data: candidateContacts }] = await Promise.all([
     supabase
       .from("campaign_contacts")
       .select("id, status, attempts, last_attempt_at, added_at, contact:contacts(id, first_name, last_name, phone, company)")
@@ -61,7 +64,20 @@ export default async function CampaignDetailPage({
       .eq("workspace_id", workspace.id)
       .order("created_at", { ascending: false })
       .limit(200),
+    supabase.from("campaign_contacts").select("contact_id").eq("campaign_id", id).eq("workspace_id", workspace.id),
+    supabase
+      .from("contacts")
+      .select("id, first_name, last_name, company, phone, email")
+      .eq("workspace_id", workspace.id)
+      .order("created_at", { ascending: false })
+      .limit(500),
   ]);
+
+  const existingContactIds = new Set((existingLinks ?? []).map((link) => link.contact_id));
+  const availableContacts = (candidateContacts ?? [])
+    .filter((contact) => !existingContactIds.has(contact.id))
+    .slice(0, AVAILABLE_CONTACTS_LIMIT);
+  const contactsCapped = (candidateContacts?.length ?? 0) - existingContactIds.size > AVAILABLE_CONTACTS_LIMIT;
 
   const totalLeads = leads?.length ?? 0;
   const callsMade = calls?.length ?? 0;
@@ -122,8 +138,13 @@ export default async function CampaignDetailPage({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Leads</CardTitle>
-          <CardDescription>Every contact attached to this campaign and where they stand.</CardDescription>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <CardTitle className="text-base">Leads</CardTitle>
+              <CardDescription>Every contact attached to this campaign and where they stand.</CardDescription>
+            </div>
+            <AddLeadsDialog campaignId={campaign.id} availableContacts={availableContacts} contactsCapped={contactsCapped} />
+          </div>
         </CardHeader>
         <CardContent>
           {!leads || leads.length === 0 ? (

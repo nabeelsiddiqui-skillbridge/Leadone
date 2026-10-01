@@ -184,6 +184,78 @@ export async function resumeCampaignAction(campaignId: string): Promise<ActionRe
   return {};
 }
 
+export async function addLeadsToCampaignAction(
+  campaignId: string,
+  contactIds: string[]
+): Promise<ActionResult> {
+  if (contactIds.length === 0) {
+    return { error: "Select at least one lead." };
+  }
+  const { supabase, campaign, workspace } = await loadOwnedCampaign(campaignId);
+  if (!campaign) return { error: "Campaign not found." };
+
+  const { error } = await supabase.from("campaign_contacts").upsert(
+    contactIds.map((contactId) => ({
+      campaign_id: campaignId,
+      contact_id: contactId,
+      workspace_id: workspace.id,
+    })),
+    { onConflict: "campaign_id,contact_id", ignoreDuplicates: true }
+  );
+  if (error) return { error: error.message };
+
+  revalidatePath(`/campaigns/${campaignId}`);
+  if (campaign.agent_id) revalidatePath(`/agents/${campaign.agent_id}`);
+  return {};
+}
+
+export async function startCampaignAction(campaignId: string): Promise<ActionResult> {
+  const { supabase, campaign, workspace } = await loadOwnedCampaign(campaignId);
+  if (!campaign) return { error: "Campaign not found." };
+  if (campaign.status !== "draft") {
+    return { error: "Only a draft calling list can be started." };
+  }
+
+  const { count: leadCount } = await supabase
+    .from("campaign_contacts")
+    .select("id", { count: "exact", head: true })
+    .eq("campaign_id", campaignId);
+  if (!leadCount) {
+    return { error: "Add at least one lead before starting." };
+  }
+
+  let phoneNumberId = campaign.phone_number_id;
+  if (!phoneNumberId) {
+    const { data: defaultNumber } = await supabase
+      .from("phone_numbers")
+      .select("id")
+      .eq("workspace_id", workspace.id)
+      .eq("is_default", true)
+      .eq("status", "active")
+      .maybeSingle();
+    phoneNumberId = defaultNumber?.id ?? null;
+  }
+  if (!phoneNumberId) {
+    return { error: "No active phone number available. Add one under Phone Numbers first." };
+  }
+
+  const { error } = await supabase
+    .from("campaigns")
+    .update({
+      status: "scheduled" satisfies CampaignStatus,
+      phone_number_id: phoneNumberId,
+      started_at: new Date().toISOString(),
+    })
+    .eq("id", campaignId)
+    .eq("workspace_id", workspace.id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/campaigns");
+  revalidatePath(`/campaigns/${campaignId}`);
+  if (campaign.agent_id) revalidatePath(`/agents/${campaign.agent_id}`);
+  return {};
+}
+
 export async function stopCampaignAction(campaignId: string): Promise<ActionResult> {
   const { supabase, campaign, workspace } = await loadOwnedCampaign(campaignId);
   if (!campaign) return { error: "Campaign not found." };

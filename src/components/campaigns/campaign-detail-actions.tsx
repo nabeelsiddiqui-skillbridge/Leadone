@@ -14,7 +14,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { pauseCampaignAction, resumeCampaignAction, stopCampaignAction } from "@/app/(app)/campaigns/actions";
+import {
+  pauseCampaignAction,
+  resumeCampaignAction,
+  startCampaignAction,
+  stopCampaignAction,
+} from "@/app/(app)/campaigns/actions";
 
 export function CampaignDetailActions({
   campaignId,
@@ -44,6 +49,14 @@ export function CampaignDetailActions({
   return (
     <>
       <div className="flex gap-2">
+        {status === "draft" && (
+          <Button
+            disabled={isPending}
+            onClick={() => run(startCampaignAction(campaignId), "Calling list started.")}
+          >
+            Start calling
+          </Button>
+        )}
         {status === "running" && (
           <Button
             variant="outline"
