@@ -124,7 +124,8 @@ header.site {
 .nav-links a { text-decoration: none; transition: color 0.15s ease; }
 .nav-links a:hover, .nav-links a[aria-current="page"] { color: var(--fg); }
 .nav-cta { display: flex; align-items: center; gap: 10px; }
-@media (max-width: 860px) { .nav-links { display: none; } .nav-cta .btn-ghost { display: none; } }
+@media (max-width: 860px) { .nav-links { display: none; } }
+@media (max-width: 420px) { .nav-cta { gap: 6px; } .nav-cta .btn { padding: 10px 14px; font-size: 0.85rem; } }
 
 .pagehero { position: relative; padding-block: 72px 56px; overflow: hidden; }
 .pagehero::before {

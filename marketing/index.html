@@ -181,7 +181,10 @@ header.site {
 .nav-toggle { display: none; }
 @media (max-width: 860px) {
   .nav-links { display: none; }
-  .nav-cta .btn-ghost { display: none; }
+}
+@media (max-width: 420px) {
+  .nav-cta { gap: 6px; }
+  .nav-cta .btn { padding: 10px 14px; font-size: 0.85rem; }
 }
 
 /* ---------- hero ---------- */
