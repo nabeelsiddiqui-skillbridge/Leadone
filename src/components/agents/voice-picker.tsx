@@ -111,7 +111,7 @@ export function VoicePicker({ value, onChange }: { value: string; onChange: (voi
               <div className="flex items-center gap-1.5">
                 <span className="font-medium">{voice.label}</span>
                 {voice.recommended && (
-                  <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
                     <Sparkles className="size-2.5" /> Recommended
                   </span>
                 )}

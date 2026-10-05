@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 
 export function AgentTemplatesPromo() {
   return (
-    <Card className="relative overflow-hidden border-0 bg-[linear-gradient(135deg,var(--primary),color-mix(in_oklch,var(--primary)_60%,#0a2e22))] p-6 text-primary-foreground shadow-md">
+    <Card className="relative overflow-hidden border-0 bg-[linear-gradient(135deg,var(--primary),color-mix(in_oklch,var(--primary)_55%,var(--accent)))] p-6 text-primary-foreground shadow-md">
       <div
         className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl"
         aria-hidden
