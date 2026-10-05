@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Products — Wyber</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700;800&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #0a0b0d;
+  --surface: #131519;
+  --surface-2: #1b1e24;
+  --line: #262a32;
+  --fg: #edeef1;
+  --muted: #8b92a3;
+  --accent: #ff7a33;
+  --accent-2: #39d2c0;
+  --accent-ink: #1a0f08;
+  color-scheme: dark;
+  --font-display: "Unbounded", "Arial Narrow", Arial, sans-serif;
+  --font-body: "Hanken Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f6f5f2; --surface: #ffffff; --surface-2: #efeee9; --line: #e2e0d8;
+    --fg: #15130f; --muted: #605c53; --accent: #e85c1a; --accent-2: #0f9d8c; --accent-ink: #fff4ec;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f6f5f2; --surface: #ffffff; --surface-2: #efeee9; --line: #e2e0d8;
+  --fg: #15130f; --muted: #605c53; --accent: #e85c1a; --accent-2: #0f9d8c; --accent-ink: #fff4ec;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { height: auto; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+img { max-width: 100%; }
+a { color: inherit; }
+h1, h2, h3, h4 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+p { margin: 0; }
+.mono { font-family: var(--font-mono); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 24px; }
+@media (max-width: 640px) { .wrap { padding-inline: 18px; } }
+::selection { background: var(--accent); color: var(--accent-ink); }
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(color-mix(in srgb, var(--line) 80%, transparent) 1px, transparent 1px);
+  background-size: 26px 26px;
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 0;
+  animation: gridshift 50s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) { body::before { animation: none; } }
+@keyframes gridshift { from { background-position: 0 0; } to { background-position: 260px 260px; } }
+header.site, main, footer.site { position: relative; z-index: 1; }
+
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.6s cubic-bezier(.2,.7,.3,1), transform 0.6s cubic-bezier(.2,.7,.3,1);
+}
+[data-reveal].revealed { opacity: 1; transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) { [data-reveal] { opacity: 1; transform: none; transition: none; } }
+
+.tilt { position: relative; isolation: isolate; }
+.tilt::before {
+  content: "";
+  position: absolute; inset: 0; border-radius: inherit;
+  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--accent-2) 16%, transparent), transparent 72%);
+  opacity: 0; transition: opacity 0.25s ease; pointer-events: none;
+}
+.tilt:hover::before { opacity: 1; }
+
+.eyebrow {
+  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--accent-2); display: inline-flex; align-items: center; gap: 8px;
+}
+.eyebrow::before {
+  content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent-2);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-2) 20%, transparent);
+}
+.btn {
+  font-family: var(--font-body); font-weight: 600; font-size: 0.95rem; border-radius: 999px;
+  padding: 13px 26px; border: 1px solid transparent; cursor: pointer; display: inline-flex;
+  align-items: center; gap: 8px; text-decoration: none;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--accent); color: var(--accent-ink); }
+.btn-primary:hover { background: color-mix(in srgb, var(--accent) 88%, white 12%); }
+.btn-ghost { background: transparent; color: var(--fg); border-color: var(--line); }
+.btn-ghost:hover { border-color: var(--accent-2); }
+.btn:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+
+header.site {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 40;
+  background: color-mix(in srgb, var(--bg) 80%, transparent); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.nav { display: flex; align-items: center; justify-content: space-between; padding-block: 16px; gap: 16px; }
+.brand {
+  display: flex; align-items: center; gap: 10px; font-family: var(--font-display);
+  font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; text-decoration: none; color: var(--fg); flex-shrink: 0;
+}
+.brand-mark { width: 30px; height: 30px; flex-shrink: 0; transition: transform 0.3s ease; }
+.brand:hover .brand-mark { transform: rotate(10deg); }
+.nav-links { display: flex; align-items: center; gap: 26px; font-size: 0.92rem; font-weight: 500; color: var(--muted); }
+.nav-links a { text-decoration: none; transition: color 0.15s ease; }
+.nav-links a:hover, .nav-links a[aria-current="page"] { color: var(--fg); }
+.nav-cta { display: flex; align-items: center; gap: 10px; }
+@media (max-width: 860px) { .nav-links { display: none; } .nav-cta .btn-ghost { display: none; } }
+
+.pagehero { position: relative; padding-block: 72px 56px; overflow: hidden; }
+.pagehero::before {
+  content: ""; position: absolute; inset: -20% -10% auto -10%; height: 420px;
+  background: radial-gradient(55% 55% at 25% 20%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%),
+              radial-gradient(45% 45% at 85% 10%, color-mix(in srgb, var(--accent-2) 10%, transparent), transparent 70%);
+  pointer-events: none; z-index: 0;
+}
+.pagehero-in { position: relative; z-index: 1; max-width: 760px; }
+.pagehero h1 { font-size: clamp(2rem, 4.6vw, 3rem); line-height: 1.06; font-weight: 700; margin-top: 16px; letter-spacing: -0.01em; }
+.pagehero p { margin-top: 18px; max-width: 58ch; font-size: 1.06rem; color: var(--muted); line-height: 1.6; }
+.pagehero-actions { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 14px; }
+.crumb { font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+.crumb:hover { color: var(--fg); }
+
+section { padding-block: 80px; position: relative; }
+section + section { border-top: 1px solid var(--line); }
+.section-head { max-width: 640px; margin-bottom: 48px; }
+.section-head h2 { font-size: clamp(1.7rem, 3.4vw, 2.3rem); margin-top: 14px; font-weight: 700; letter-spacing: -0.01em; }
+.section-head p { margin-top: 14px; color: var(--muted); font-size: 1.04rem; max-width: 54ch; }
+
+.product-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+.product-id { display: flex; align-items: center; gap: 14px; }
+.product-mark {
+  width: 46px; height: 46px; border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, var(--accent-2)));
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.product-mark svg { width: 24px; height: 24px; }
+.product-name { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; }
+.product-tag { color: var(--muted); font-size: 0.95rem; margin-top: 2px; }
+.product-badge {
+  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent) 10%, transparent); padding: 7px 13px; border-radius: 999px; white-space: nowrap;
+}
+.product-desc { margin-top: 22px; color: var(--muted); font-size: 1.02rem; max-width: 68ch; }
+.product-stats { margin-top: 30px; display: flex; gap: 26px; flex-wrap: wrap; font-family: var(--font-mono); font-size: 0.82rem; color: var(--muted); }
+.product-stats b { color: var(--fg); font-size: 0.95rem; display: block; }
+
+/* ---------- agent explorer (shared layout pattern with homepage's process stepper) ---------- */
+.agent-shell { display: grid; grid-template-columns: 300px 1fr; gap: 26px; align-items: start; margin-top: 8px; }
+@media (max-width: 860px) { .agent-shell { grid-template-columns: 1fr; } }
+.agent-nav { display: flex; flex-direction: column; gap: 4px; }
+@media (max-width: 860px) { .agent-nav { flex-direction: row; overflow-x: auto; gap: 10px; padding-bottom: 8px; } }
+.agent-tab {
+  display: flex; align-items: center; gap: 12px; background: none; border: 1px solid transparent; text-align: left;
+  width: 100%; padding: 12px 14px; border-radius: 12px; cursor: pointer; color: var(--muted); font-family: inherit;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.agent-tab:hover { background: var(--surface); }
+.agent-tab.active { background: var(--surface); border-color: var(--line); color: var(--fg); }
+.agent-tab .ic {
+  width: 36px; height: 36px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center; color: var(--accent-2); flex-shrink: 0;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.agent-tab.active .ic { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.agent-tab .ic svg { width: 17px; height: 17px; }
+.agent-tab-text strong { display: block; font-family: var(--font-body); font-size: 0.94rem; font-weight: 600; color: var(--fg); }
+.agent-tab-text small { display: block; margin-top: 2px; font-size: 0.78rem; color: var(--muted); }
+@media (max-width: 860px) {
+  .agent-tab { flex-direction: column; min-width: 118px; border-color: var(--line); flex-shrink: 0; }
+  .agent-tab-text { text-align: center; }
+  .agent-tab-text small { display: none; }
+}
+
+.agent-panel {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 38px; position: relative; overflow: hidden;
+}
+@media (max-width: 640px) { .agent-panel { padding: 24px; } }
+.agent-panel::after {
+  content: ""; position: absolute; top: -35%; right: -12%; width: 50%; aspect-ratio: 1;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent-2) 13%, transparent), transparent 75%); pointer-events: none;
+}
+.agent-panel-head { display: flex; align-items: flex-start; gap: 16px; position: relative; }
+.agent-panel-ic {
+  width: 52px; height: 52px; border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, var(--accent-2)));
+  display: flex; align-items: center; justify-content: center; color: var(--accent-ink); flex-shrink: 0;
+}
+.agent-panel-ic svg { width: 26px; height: 26px; }
+.agent-panel-head h3 { font-size: 1.3rem; font-weight: 700; transition: opacity 0.2s ease; }
+.agent-panel-head .role { margin-top: 3px; font-size: 0.86rem; color: var(--accent-2); font-family: var(--font-mono); }
+.agent-panel .tagline { margin-top: 20px; font-size: 1.04rem; color: var(--fg); font-weight: 600; position: relative; }
+.agent-panel .desc { margin-top: 12px; color: var(--muted); font-size: 0.98rem; line-height: 1.65; max-width: 62ch; position: relative; }
+.agent-panel.swap .agent-panel-head h3, .agent-panel.swap .tagline, .agent-panel.swap .desc,
+.agent-panel.swap .agent-caps, .agent-panel.swap .call-mock { opacity: 0; transform: translateY(6px); }
+.agent-panel-head h3, .tagline, .desc, .agent-caps, .call-mock { transition: opacity 0.2s ease, transform 0.2s ease; }
+
+.agent-caps { margin-top: 24px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 11px; position: relative; }
+@media (max-width: 560px) { .agent-caps { grid-template-columns: 1fr; } }
+.agent-caps .cap { display: flex; gap: 10px; align-items: flex-start; font-size: 0.9rem; color: var(--fg); }
+.agent-caps .cap svg { flex-shrink: 0; margin-top: 3px; color: var(--accent-2); width: 15px; height: 15px; }
+.agent-caps .cap span { color: var(--muted); }
+
+.call-mock { margin-top: 28px; background: var(--bg); border: 1px solid var(--line); border-radius: 16px; padding: 20px; position: relative; }
+.call-mock .mock-head {
+  display: flex; align-items: center; gap: 9px; color: var(--muted); margin-bottom: 14px;
+  font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase;
+}
+.call-mock .mock-head .live-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--accent-2);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-2) 20%, transparent); flex-shrink: 0;
+}
+.call-mock .line { display: grid; grid-template-columns: 70px 1fr; gap: 10px; margin-bottom: 10px; font-family: var(--font-mono); font-size: 0.82rem; }
+.call-mock .who { color: var(--accent-2); }
+.call-mock .who.caller { color: var(--accent); }
+.call-mock .txt { color: var(--muted); line-height: 1.5; }
+
+/* ---------- capabilities ---------- */
+.cap-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+@media (max-width: 920px) { .cap-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .cap-grid { grid-template-columns: 1fr; } }
+.cap-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; transition: border-color 0.15s ease, transform 0.15s ease; }
+.cap-card:hover { border-color: var(--accent-2); transform: translateY(-2px); }
+.cap-ic {
+  width: 40px; height: 40px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center; color: var(--accent); margin-bottom: 16px;
+}
+.cap-ic svg { width: 19px; height: 19px; }
+.cap-card h3 { font-size: 0.98rem; font-weight: 600; font-family: var(--font-body); }
+.cap-card p { margin-top: 8px; color: var(--muted); font-size: 0.86rem; line-height: 1.5; }
+
+.cta-strip {
+  border: 1px dashed var(--line); border-radius: 22px; padding: 40px; display: flex; align-items: center;
+  justify-content: space-between; gap: 24px; flex-wrap: wrap;
+}
+.cta-strip h3 { font-size: 1.3rem; font-weight: 700; }
+.cta-strip p { margin-top: 8px; color: var(--muted); font-size: 0.96rem; max-width: 46ch; }
+
+footer.site { border-top: 1px solid var(--line); padding-block: 56px 32px; margin-top: 10px; }
+.footer-grid { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: 36px; padding-bottom: 40px; }
+@media (max-width: 760px) { .footer-grid { grid-template-columns: 1fr 1fr; gap: 28px; } }
+@media (max-width: 480px) { .footer-grid { grid-template-columns: 1fr; } }
+.footer-brand p { margin-top: 16px; color: var(--muted); font-size: 0.9rem; max-width: 32ch; line-height: 1.6; }
+.footer-col h5 { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+.footer-col a { display: block; color: var(--muted); text-decoration: none; font-size: 0.92rem; margin-bottom: 11px; }
+.footer-col a:hover { color: var(--fg); }
+.footer-bottom { border-top: 1px solid var(--line); padding-top: 26px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; }
+.footer-links { display: flex; gap: 22px; font-size: 0.88rem; color: var(--muted); }
+.footer-links a { text-decoration: none; }
+.footer-links a:hover { color: var(--fg); }
+.copy { font-size: 0.82rem; color: var(--muted); font-family: var(--font-mono); }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap nav">
+    <a href="./" class="brand">
+      <svg class="brand-mark" viewBox="0 0 30 30" fill="none">
+        <rect width="30" height="30" rx="8" fill="var(--accent)"/>
+        <circle cx="9" cy="15" r="2.4" fill="var(--accent-ink)"/>
+        <circle cx="21" cy="9" r="2.4" fill="var(--accent-ink)"/>
+        <circle cx="21" cy="21" r="2.4" fill="var(--accent-ink)"/>
+        <path d="M9 15L21 9M9 15L21 21" stroke="var(--accent-ink)" stroke-width="1.6"/>
+      </svg>
+      Wyber
+    </a>
+    <nav class="nav-links">
+      <a href="./#workflows">Workflows</a>
+      <a href="./#how">How it works</a>
+      <a href="./#platform">Platform</a>
+      <a href="products.html" aria-current="page">Products</a>
+      <a href="./#faq">FAQ</a>
+      <a href="./#contact">Contact</a>
+    </nav>
+    <div class="nav-cta">
+      <a href="https://portal.wyberk.com/login" class="btn btn-ghost" target="_blank" rel="noopener">Log in</a>
+      <a href="./#contact" class="btn btn-primary">Talk to us</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="pagehero">
+    <div class="wrap pagehero-in">
+      <a href="./" class="crumb">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Back to Wyber
+      </a>
+      <span class="eyebrow" style="margin-top:18px;display:inline-flex;">Our Products</span>
+      <h1>Agents built for one job, done well.</h1>
+      <p>Every Wyber product starts the same way — a real workflow, documented, and handed to a task-specific agent. LeadOne is the first one we've shipped.</p>
+      <div class="pagehero-actions">
+        <a href="#agents" class="btn btn-primary">Explore the 6 agents</a>
+        <a href="./#contact" class="btn btn-ghost">Talk to us</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="leadone">
+    <div class="wrap">
+      <div class="product-top" data-reveal>
+        <div class="product-id">
+          <div class="product-mark">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 7.5C4 6.12 5.12 5 6.5 5h11C18.88 5 20 6.12 20 7.5v6c0 1.38-1.12 2.5-2.5 2.5H9l-4 4v-4H6.5C5.12 16 4 14.88 4 13.5v-6Z" fill="var(--accent-ink)"/>
+            </svg>
+          </div>
+          <div>
+            <div class="product-name">LeadOne</div>
+            <div class="product-tag">AI calling agents for sales, support &amp; scheduling</div>
+          </div>
+        </div>
+        <span class="product-badge">Flagship product</span>
+      </div>
+      <p class="product-desc" data-reveal>LeadOne puts a voice on your pipeline. It calls leads, answers customer questions, qualifies prospects, and books real meetings on a connected calendar — with live transcripts, call recordings, and outcome tracking for every conversation. Six pre-built agents cover the most common revenue and support workflows out of the box, each configurable to your script, voice, and escalation rules.</p>
+      <div class="product-stats" data-reveal>
+        <span><b>6</b>pre-built agents</span>
+        <span><b>24/7</b>calling availability</span>
+        <span><b>Live</b>transcripts &amp; recordings</span>
+        <span><b>Any</b>calendar, or none at all</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="agents">
+    <div class="wrap">
+      <div class="section-head" data-reveal>
+        <span class="eyebrow">Meet the Agents</span>
+        <h2>Six agents, one platform</h2>
+        <p>Pick an agent to see exactly what it does, what it's built to handle, and how a call with it actually sounds.</p>
+      </div>
+      <div class="agent-shell">
+        <div class="agent-nav" id="agentNav" role="tablist" aria-label="LeadOne agents">
+          <button class="agent-tab active" type="button" data-index="0" role="tab" aria-selected="true">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M3 17l5-5 4 4 8-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 7h5v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="agent-tab-text"><strong>AI Sales Agent</strong><small>Qualifies &amp; books meetings</small></span>
+          </button>
+          <button class="agent-tab" type="button" data-index="1" role="tab" aria-selected="false">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 6.5C4 5.12 5.12 4 6.5 4h11C18.88 4 20 5.12 20 6.5v6c0 1.38-1.12 2.5-2.5 2.5H9l-4 4v-4H6.5C5.12 15 4 13.88 4 12.5v-6Z" stroke="currentColor" stroke-width="1.6"/></svg></span>
+            <span class="agent-tab-text"><strong>AI Customer Support Agent</strong><small>Answers &amp; escalates</small></span>
+          </button>
+          <button class="agent-tab" type="button" data-index="2" role="tab" aria-selected="false">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="17" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 9h18M8 2v4M16 2v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+            <span class="agent-tab-text"><strong>AI Appointment Setter</strong><small>Books confirmed times</small></span>
+          </button>
+          <button class="agent-tab" type="button" data-index="3" role="tab" aria-selected="false">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7.5C4 6.12 5.12 5 6.5 5h11C18.88 5 20 6.12 20 7.5v6c0 1.38-1.12 2.5-2.5 2.5H9l-4 4v-4H6.5C5.12 16 4 14.88 4 13.5v-6Z" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="9.5" r="0.9" fill="currentColor"/><circle cx="13" cy="9.5" r="0.9" fill="currentColor"/></svg></span>
+            <span class="agent-tab-text"><strong>AI Receptionist</strong><small>Answers every call</small></span>
+          </button>
+          <button class="agent-tab" type="button" data-index="4" role="tab" aria-selected="false">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 8l1.5-4h13L20 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><rect x="4" y="8" width="16" height="12" rx="1.5" stroke="currentColor" stroke-width="1.6"/><path d="M9 11.5a3 3 0 0 0 6 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+            <span class="agent-tab-text"><strong>AI Ecommerce Agent</strong><small>Orders &amp; upsells</small></span>
+          </button>
+          <button class="agent-tab" type="button" data-index="5" role="tab" aria-selected="false">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 11l8-7 8 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9h12v-9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 19v-5h4v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="agent-tab-text"><strong>AI Real Estate Agent</strong><small>Qualifies buyers &amp; sellers</small></span>
+          </button>
+        </div>
+
+        <div class="agent-panel" id="agentPanel">
+          <div class="agent-panel-head">
+            <div class="agent-panel-ic" id="panelIc">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M3 17l5-5 4 4 8-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 7h5v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div>
+              <h3 id="panelName">AI Sales Agent</h3>
+              <div class="role mono" id="panelRole">AI Sales Development Representative</div>
+            </div>
+          </div>
+          <p class="tagline" id="panelTagline">Qualifies leads and books meetings, every single time they call.</p>
+          <p class="desc" id="panelDesc">Works new and inbound leads the moment they come in, asks qualifying questions, handles common objections, and gets a meeting on the calendar — so reps spend their time on calls that are already qualified.</p>
+          <div class="agent-caps" id="panelCaps">
+            <div class="cap"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Lead qualification scripts tailored to your ICP</span></div>
+            <div class="cap"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Objection handling built from your playbook</span></div>
+            <div class="cap"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Calendar-verified meeting booking</span></div>
+            <div class="cap"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Full call transcript handed to the rep before the meeting</span></div>
+          </div>
+          <div class="call-mock" id="panelMock" aria-hidden="true">
+            <div class="mock-head"><span class="live-dot"></span>Illustrative call transcript</div>
+            <div id="panelLines"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="capabilities">
+    <div class="wrap">
+      <div class="section-head" data-reveal>
+        <span class="eyebrow">Platform Capabilities</span>
+        <h2>What every LeadOne agent ships with</h2>
+        <p>Regardless of which agent you deploy, it comes with the same platform underneath — these are the pieces that make it production-ready.</p>
+      </div>
+      <div class="cap-grid">
+        <div class="cap-card tilt" data-reveal>
+          <div class="cap-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 6.5C4 5.12 5.12 4 6.5 4h11C18.88 4 20 5.12 20 6.5v6c0 1.38-1.12 2.5-2.5 2.5H9l-4 4v-4H6.5C5.12 15 4 13.88 4 12.5v-6Z" stroke="currentColor" stroke-width="1.6"/></svg></div>
+          <h3>Real-time transcripts &amp; recordings</h3>
+          <p>Every conversation is transcribed and recorded as it happens, searchable right after the call ends.</p>
+        </div>
+        <div class="cap-card tilt" data-reveal>
+          <div class="cap-ic"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="17" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 9h18M8 2v4M16 2v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+          <h3>Calendar-verified booking</h3>
+          <p>Appointments are checked against real-time availability, and always saved — with or without a connected calendar.</p>
+        </div>
+        <div class="cap-card tilt" data-reveal>
+          <div class="cap-ic"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="2" stroke="currentColor" stroke-width="1.6"/><rect x="13" y="3" width="8" height="8" rx="2" stroke="currentColor" stroke-width="1.6"/><rect x="3" y="13" width="8" height="8" rx="2" stroke="currentColor" stroke-width="1.6"/><rect x="13" y="13" width="8" height="8" rx="2" stroke="currentColor" stroke-width="1.6"/></svg></div>
+          <h3>Multi-tenant workspaces</h3>
+          <p>Run separate workspaces for teams, brands, or clients, each with its own agents and data.</p>
+        </div>
+        <div class="cap-card tilt" data-reveal>
+          <div class="cap-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19V10M11 19V5M18 19v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M3 19h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+          <h3>Live analytics dashboard</h3>
+          <p>Call outcomes, volume, and usage, tracked in real time — not a weekly export.</p>
+        </div>
+        <div class="cap-card tilt" data-reveal>
+          <div class="cap-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3a4 4 0 0 1 4 4v5a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4Z" stroke="currentColor" stroke-width="1.6"/><path d="M6 11a6 6 0 0 0 12 0M12 19v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+          <h3>Configurable voice &amp; script</h3>
+          <p>Tune voice, tone, and talking points per agent — no two deployments have to sound the same.</p>
+        </div>
+        <div class="cap-card tilt" data-reveal>
+          <div class="cap-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 5-3.2 8.3-7 10-3.8-1.7-7-5-7-10V6l7-3Z" stroke="currentColor" stroke-width="1.6"/><path d="M9 12.2l2 2 4-4.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <h3>Do-not-call &amp; compliance safeguards</h3>
+          <p>Built-in guardrails honor do-not-call requests and keep every call within policy.</p>
+        </div>
+        <div class="cap-card tilt" data-reveal>
+          <div class="cap-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 19c-4-3-7-6.2-7-10a4.5 4.5 0 0 1 7.8-3A4.5 4.5 0 0 1 19 9c0 3.8-3 7-7 10Z" stroke="currentColor" stroke-width="1.6"/><path d="M3 11h4l2 4 3-7 2 4h7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <h3>Natural barge-in</h3>
+          <p>Callers can interrupt and be heard instantly — no waiting for the agent to finish talking.</p>
+        </div>
+        <div class="cap-card tilt" data-reveal>
+          <div class="cap-ic"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 7v5l3.5 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <h3>Works with or without a calendar</h3>
+          <p>No Google Calendar connected yet? Appointments still save straight to your workspace.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="more">
+    <div class="wrap">
+      <div class="cta-strip" data-reveal>
+        <div>
+          <h3>Need an agent for a different workflow?</h3>
+          <p>LeadOne is the first product we've shipped. Tell us what you're trying to automate and we'll scope it.</p>
+        </div>
+        <a href="./#contact" class="btn btn-primary">Talk to us</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="./" class="brand" style="font-size:1rem;">
+          <svg class="brand-mark" viewBox="0 0 30 30" fill="none" style="width:24px;height:24px;">
+            <rect width="30" height="30" rx="8" fill="var(--accent)"/>
+            <circle cx="9" cy="15" r="2.4" fill="var(--accent-ink)"/>
+            <circle cx="21" cy="9" r="2.4" fill="var(--accent-ink)"/>
+            <circle cx="21" cy="21" r="2.4" fill="var(--accent-ink)"/>
+            <path d="M9 15L21 9M9 15L21 21" stroke="var(--accent-ink)" stroke-width="1.6"/>
+          </svg>
+          Wyber
+        </a>
+        <p>We build automation workflows and applications using AI for enterprises — driving value and saving costs.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Site</h5>
+        <a href="./#workflows">Workflows</a>
+        <a href="./#how">How it works</a>
+        <a href="./#platform">Platform</a>
+        <a href="./#why">Why Wyber</a>
+      </div>
+      <div class="footer-col">
+        <h5>Products</h5>
+        <a href="#leadone">LeadOne</a>
+        <a href="#agents">All agents</a>
+        <a href="#capabilities">Capabilities</a>
+      </div>
+      <div class="footer-col">
+        <h5>Get in touch</h5>
+        <a href="./#contact">Talk to us</a>
+        <a href="./#faq">FAQ</a>
+        <a href="./#contact">Workflow audit</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-links">
+        <a href="./#how">How it works</a>
+        <a href="./">Home</a>
+        <a href="./#contact">Contact</a>
+      </div>
+      <span class="copy">© 2026 WYBER</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  var agents = [
+    {
+      name: "AI Sales Agent",
+      role: "AI Sales Development Representative",
+      tagline: "Qualifies leads and books meetings, every single time they call.",
+      desc: "Works new and inbound leads the moment they come in, asks qualifying questions, handles common objections, and gets a meeting on the calendar — so reps spend their time on calls that are already qualified.",
+      icon: '<path d="M3 17l5-5 4 4 8-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 7h5v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+      caps: [
+        "Lead qualification scripts tailored to your ICP",
+        "Objection handling built from your playbook",
+        "Calendar-verified meeting booking",
+        "Full call transcript handed to the rep before the meeting"
+      ],
+      lines: [
+        { who: "LeadOne", txt: "Hi, this is Sarah with Acme — I saw you requested a quote on our website. Got a quick minute?" },
+        { who: "Caller", caller: true, txt: "Sure, go ahead." },
+        { who: "LeadOne", txt: "Great — what's driving the search right now, is it cost or something your current setup can't do?" },
+        { who: "Caller", caller: true, txt: "Mostly cost. We're paying too much for what we're getting." },
+        { who: "LeadOne", txt: "That makes sense. I can get you on a call with our team Thursday at 2pm — does that work?" }
+      ]
+    },
+    {
+      name: "AI Customer Support Agent",
+      role: "AI Customer Support Specialist",
+      tagline: "Answers customer questions accurately, and knows when to hand off.",
+      desc: "Handles the questions that come up every day — order status, policies, how-to — pulling answers from your knowledge base, and hands off to a human the moment a question falls outside what it's been trained on.",
+      icon: '<path d="M4 6.5C4 5.12 5.12 4 6.5 4h11C18.88 4 20 5.12 20 6.5v6c0 1.38-1.12 2.5-2.5 2.5H9l-4 4v-4H6.5C5.12 15 4 13.88 4 12.5v-6Z" stroke="currentColor" stroke-width="1.6"/>',
+      caps: [
+        "Knowledge-base-grounded answers, no invented information",
+        "Configurable escalation rules",
+        "Voice today, more channels planned",
+        "Full transcript and resolution logging"
+      ],
+      lines: [
+        { who: "Caller", caller: true, txt: "Hi, I never got a confirmation email for my order." },
+        { who: "LeadOne", txt: "Let's take a look — can I get the email or order number you used?" },
+        { who: "Caller", caller: true, txt: "It's under jordan@email.com." },
+        { who: "LeadOne", txt: "Found it — your order shipped yesterday and should arrive Friday. I'll resend the confirmation now." },
+        { who: "Caller", caller: true, txt: "Perfect, thank you." }
+      ]
+    },
+    {
+      name: "AI Appointment Setter",
+      role: "AI Appointment Setter",
+      tagline: "Gets a time on the calendar, confirmed, without the back-and-forth.",
+      desc: "Checks real-time availability, offers open slots, and confirms a booking on the spot — reducing the back-and-forth emails and missed calls that usually come with scheduling.",
+      icon: '<rect x="3" y="4" width="18" height="17" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 9h18M8 2v4M16 2v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+      caps: [
+        "Real-time calendar availability checks",
+        "Automatic confirmation and reminders",
+        "Reschedules handled without a human",
+        "Appointments always saved, with or without calendar sync"
+      ],
+      lines: [
+        { who: "LeadOne", txt: "I can get you in this week — would Wednesday at 10am or Thursday at 3pm work better?" },
+        { who: "Caller", caller: true, txt: "Thursday works." },
+        { who: "LeadOne", txt: "You're booked for Thursday at 3pm. I'll send a confirmation right after this call." },
+        { who: "Caller", caller: true, txt: "Great, thanks." }
+      ]
+    },
+    {
+      name: "AI Receptionist",
+      role: "AI Virtual Receptionist",
+      tagline: "The professional first impression, every call, every time.",
+      desc: "Answers every inbound call with a consistent, professional greeting, routes callers to the right place, takes messages, and makes sure no call goes unanswered — even after hours.",
+      icon: '<path d="M4 7.5C4 6.12 5.12 5 6.5 5h11C18.88 5 20 6.12 20 7.5v6c0 1.38-1.12 2.5-2.5 2.5H9l-4 4v-4H6.5C5.12 16 4 14.88 4 13.5v-6Z" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="9.5" r="0.9" fill="currentColor"/><circle cx="13" cy="9.5" r="0.9" fill="currentColor"/>',
+      caps: [
+        "Custom greeting &amp; call routing rules",
+        "After-hours and overflow coverage",
+        "Message-taking with instant delivery to your team",
+        "Live transfer to a person when needed"
+      ],
+      lines: [
+        { who: "LeadOne", txt: "Thanks for calling Acme, this is the front desk — how can I help?" },
+        { who: "Caller", caller: true, txt: "I need to speak with someone in billing." },
+        { who: "LeadOne", txt: "I'll connect you now — if no one picks up, I'll take a message and get it to them today." }
+      ]
+    },
+    {
+      name: "AI Ecommerce Agent",
+      role: "AI Ecommerce Support & Sales Agent",
+      tagline: "Order status, product questions, and the occasional upsell - handled.",
+      desc: "Answers order and shipping questions, helps shoppers find the right product, and surfaces a relevant upsell or cross-sell at the right moment — without the wait time of a support queue.",
+      icon: '<path d="M4 8l1.5-4h13L20 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><rect x="4" y="8" width="16" height="12" rx="1.5" stroke="currentColor" stroke-width="1.6"/><path d="M9 11.5a3 3 0 0 0 6 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+      caps: [
+        "Order status lookups",
+        "Product Q&amp;A grounded in your catalog",
+        "Context-aware upsell suggestions",
+        "Escalates refund/dispute cases to your team"
+      ],
+      lines: [
+        { who: "Caller", caller: true, txt: "Where's my order? It's been a week." },
+        { who: "LeadOne", txt: "Let me check — it's out for delivery today, should arrive by end of day." },
+        { who: "Caller", caller: true, txt: "Good. Also, does the jacket I ordered come in other colors?" },
+        { who: "LeadOne", txt: "It does — navy and olive are in stock, and they pair well with the bag you ordered last time." }
+      ]
+    },
+    {
+      name: "AI Real Estate Agent",
+      role: "AI Real Estate Assistant",
+      tagline: "Qualifies buyers and sellers, and books the showing.",
+      desc: "Qualifies inbound buyer and seller leads, answers listing questions, and books a showing directly on the agent's calendar — so agents only spend time on leads that are ready to move.",
+      icon: '<path d="M4 11l8-7 8 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9h12v-9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 19v-5h4v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+      caps: [
+        "Buyer/seller qualification questions",
+        "Listing Q&amp;A",
+        "Showing scheduling with calendar sync",
+        "Lead handoff notes for the agent"
+      ],
+      lines: [
+        { who: "Caller", caller: true, txt: "I'm interested in the 3-bedroom on Maple Street." },
+        { who: "LeadOne", txt: "Great choice — are you currently pre-approved, or still early in the search?" },
+        { who: "Caller", caller: true, txt: "Pre-approved already." },
+        { who: "LeadOne", txt: "Perfect. I can get you in for a showing Saturday at 11am — want me to book it?" }
+      ]
+    }
+  ];
+
+  var tabs = document.querySelectorAll("#agentNav .agent-tab");
+  var panel = document.getElementById("agentPanel");
+  var panelIc = document.getElementById("panelIc");
+  var panelName = document.getElementById("panelName");
+  var panelRole = document.getElementById("panelRole");
+  var panelTagline = document.getElementById("panelTagline");
+  var panelDesc = document.getElementById("panelDesc");
+  var panelCaps = document.getElementById("panelCaps");
+  var panelLines = document.getElementById("panelLines");
+  var checkSvg = '<svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  function renderAgent(i) {
+    var a = agents[i];
+    tabs.forEach(function (tab, idx) {
+      var active = idx === i;
+      tab.classList.toggle("active", active);
+      tab.setAttribute("aria-selected", active ? "true" : "false");
+    });
+    panel.classList.add("swap");
+    setTimeout(function () {
+      panelIc.innerHTML = '<svg viewBox="0 0 24 24" fill="none">' + a.icon + '</svg>';
+      panelName.textContent = a.name;
+      panelRole.textContent = a.role;
+      panelTagline.textContent = a.tagline;
+      panelDesc.textContent = a.desc;
+      panelCaps.innerHTML = a.caps.map(function (c) { return '<div class="cap">' + checkSvg + '<span>' + c + '</span></div>'; }).join("");
+      panelLines.innerHTML = a.lines.map(function (l) {
+        return '<div class="line"><span class="who mono' + (l.caller ? ' caller' : '') + '">' + l.who + '</span><span class="txt mono">' + l.txt + '</span></div>';
+      }).join("");
+      panel.classList.remove("swap");
+    }, 160);
+  }
+
+  tabs.forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      renderAgent(parseInt(tab.getAttribute("data-index"), 10));
+    });
+  });
+
+  var revealEls = document.querySelectorAll("[data-reveal]");
+  var siblingCounts = new Map();
+  revealEls.forEach(function (el) {
+    var parent = el.parentElement;
+    var n = siblingCounts.get(parent) || 0;
+    el.style.transitionDelay = (Math.min(n, 8) * 0.06) + "s";
+    siblingCounts.set(parent, n + 1);
+  });
+  if ("IntersectionObserver" in window) {
+    var revealObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("revealed");
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: "0px 0px -40px 0px" });
+    revealEls.forEach(function (el) { revealObserver.observe(el); });
+  } else {
+    revealEls.forEach(function (el) { el.classList.add("revealed"); });
+  }
+
+  document.querySelectorAll(".tilt").forEach(function (el) {
+    el.addEventListener("mousemove", function (e) {
+      var r = el.getBoundingClientRect();
+      el.style.setProperty("--mx", ((e.clientX - r.left) / r.width) * 100 + "%");
+      el.style.setProperty("--my", ((e.clientY - r.top) / r.height) * 100 + "%");
+    });
+  });
+})();
+</script>
+</body>
+</html>

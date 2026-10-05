@@ -1,0 +1,1718 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Wyber — we build automation workflows and applications using AI for enterprises, driving value and saving costs. LeadOne is our flagship AI calling product.">
+<title>Wyber</title>
+<style>
+/* ============================================================
+   DESIGN PLAN
+   Layout: a vertical "signal spine" (circuit trace) runs down the
+   page through the How It Works steps, visualizing the workflow
+   the copy describes — nodes on a trace, not decoration.
+   Color — dark-first (futuristic AI SaaS), 6 tokens:
+     --bg (near-black graphite), --surface (panel), --fg (off-white),
+     --muted (secondary text), --accent (signal amber), --accent-2 (circuit cyan)
+   Type — 3 roles:
+     --font-display: Unbounded (geometric, technical headlines)
+     --font-body: Hanken Grotesk (clean body/UI)
+     --font-mono: IBM Plex Mono (labels, numbers, form, data)
+   ============================================================ */
+:root {
+  --bg: #0a0b0d;
+  --surface: #131519;
+  --surface-2: #1b1e24;
+  --line: #262a32;
+  --fg: #edeef1;
+  --muted: #8b92a3;
+  --accent: #ff7a33;
+  --accent-2: #39d2c0;
+  --accent-ink: #1a0f08;
+  color-scheme: dark;
+
+  --font-display: "Unbounded", "Arial Narrow", Arial, sans-serif;
+  --font-body: "Hanken Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f6f5f2;
+    --surface: #ffffff;
+    --surface-2: #efeee9;
+    --line: #e2e0d8;
+    --fg: #15130f;
+    --muted: #605c53;
+    --accent: #e85c1a;
+    --accent-2: #0f9d8c;
+    --accent-ink: #fff4ec;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f6f5f2;
+  --surface: #ffffff;
+  --surface-2: #efeee9;
+  --line: #e2e0d8;
+  --fg: #15130f;
+  --muted: #605c53;
+  --accent: #e85c1a;
+  --accent-2: #0f9d8c;
+  --accent-ink: #fff4ec;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { height: auto; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+img { max-width: 100%; }
+a { color: inherit; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+p { margin: 0; }
+.mono { font-family: var(--font-mono); }
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-inline: 24px;
+}
+@media (max-width: 640px) {
+  .wrap { padding-inline: 18px; }
+}
+::selection { background: var(--accent); color: var(--accent-ink); }
+
+/* ---------- utility ---------- */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.eyebrow::before {
+  content: "";
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--accent-2);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-2) 20%, transparent);
+}
+.btn {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.95rem;
+  border-radius: 999px;
+  padding: 13px 26px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.btn-primary:hover { background: color-mix(in srgb, var(--accent) 88%, white 12%); }
+.btn-ghost {
+  background: transparent;
+  color: var(--fg);
+  border-color: var(--line);
+}
+.btn-ghost:hover { border-color: var(--accent-2); }
+.btn:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+
+/* ---------- nav ---------- */
+header.site {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 40;
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: 16px;
+  gap: 16px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  color: var(--fg);
+  flex-shrink: 0;
+}
+.brand-mark {
+  width: 30px; height: 30px;
+  flex-shrink: 0;
+}
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.nav-links a { text-decoration: none; transition: color 0.15s ease; }
+.nav-links a:hover { color: var(--fg); }
+.nav-cta { display: flex; align-items: center; gap: 10px; }
+.nav-toggle { display: none; }
+@media (max-width: 860px) {
+  .nav-links { display: none; }
+  .nav-cta .btn-ghost { display: none; }
+}
+
+/* ---------- hero ---------- */
+.hero {
+  position: relative;
+  padding-block: 88px 64px;
+  overflow: hidden;
+}
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: -20% -10% auto -10%;
+  height: 560px;
+  background: radial-gradient(60% 60% at 30% 20%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+              radial-gradient(50% 50% at 85% 10%, color-mix(in srgb, var(--accent-2) 12%, transparent), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+.hero-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 56px;
+  align-items: center;
+}
+@media (max-width: 920px) {
+  .hero-grid { grid-template-columns: 1fr; gap: 40px; }
+}
+.hero h1 {
+  font-size: clamp(2.3rem, 5.4vw, 3.6rem);
+  line-height: 1.04;
+  font-weight: 700;
+  margin-top: 18px;
+  letter-spacing: -0.01em;
+}
+.hero h1 em {
+  font-style: normal;
+  color: var(--accent);
+}
+.hero p.lede {
+  margin-top: 22px;
+  max-width: 48ch;
+  font-size: 1.1rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.hero-actions {
+  margin-top: 32px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.hero-tags {
+  margin-top: 34px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.hero-tags span {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 13px;
+}
+.hero-art { position: relative; min-width: 0; }
+.hero-art svg { width: 100%; height: auto; display: block; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .pulse-dot { animation: travel 5.5s linear infinite; }
+  .pulse-dot.d2 { animation-delay: 1.8s; }
+  .pulse-dot.d3 { animation-delay: 3.6s; }
+}
+@keyframes travel {
+  0% { offset-distance: 0%; opacity: 0; }
+  6% { opacity: 1; }
+  94% { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+.trace-path { fill: none; stroke: var(--line); stroke-width: 1.5; }
+.node-ring { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+.node-dot { fill: var(--accent-2); }
+
+/* ---------- section scaffolding ---------- */
+section { padding-block: 86px; position: relative; }
+section + section { border-top: 1px solid var(--line); }
+.section-head { max-width: 640px; margin-bottom: 52px; }
+.section-head.center { margin-inline: auto; text-align: center; }
+.section-head h2 {
+  font-size: clamp(1.7rem, 3.4vw, 2.3rem);
+  margin-top: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.section-head p {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 1.04rem;
+  max-width: 54ch;
+}
+.section-head.center p { margin-inline: auto; }
+
+/* ---------- workflows we automate ---------- */
+.usecase-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+@media (max-width: 860px) {
+  .usecase-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+  .usecase-grid { grid-template-columns: 1fr; }
+}
+.usecase-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 26px;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.usecase-card:hover { border-color: var(--accent-2); transform: translateY(-2px); }
+.usecase-ic {
+  width: 42px; height: 42px;
+  border-radius: 11px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent);
+  margin-bottom: 18px;
+}
+.usecase-ic svg { width: 20px; height: 20px; }
+.usecase-card h3 { font-size: 1.04rem; font-weight: 600; font-family: var(--font-body); }
+.usecase-card p { margin-top: 9px; color: var(--muted); font-size: 0.9rem; line-height: 1.55; }
+
+/* ---------- how it works (interactive process stepper) ---------- */
+.process-shell {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 28px;
+  align-items: start;
+  margin-top: 8px;
+}
+@media (max-width: 860px) {
+  .process-shell { grid-template-columns: 1fr; }
+}
+.process-nav {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 24px;
+}
+.process-rail {
+  position: absolute;
+  left: 5px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: var(--line);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.process-rail-fill {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 20%;
+  background: linear-gradient(var(--accent), var(--accent-2));
+  border-radius: 2px;
+  transition: height 0.5s cubic-bezier(.3,.8,.3,1);
+}
+.process-tab {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: none;
+  border: none;
+  text-align: left;
+  width: 100%;
+  padding: 13px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  color: var(--muted);
+  font-family: inherit;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.process-tab:hover { background: var(--surface); }
+.process-tab::before {
+  content: "";
+  position: absolute;
+  left: -23px;
+  top: 18px;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--line);
+  transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+}
+.process-tab.active::before {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.process-tab.active { background: var(--surface); color: var(--fg); }
+.process-tab-num { font-family: var(--font-mono); font-size: 0.78rem; color: var(--accent-2); flex-shrink: 0; padding-top: 2px; }
+.process-tab-text strong { display: block; font-family: var(--font-body); font-size: 0.98rem; font-weight: 600; color: var(--fg); }
+.process-tab-text small { display: block; margin-top: 4px; font-size: 0.82rem; font-weight: 400; line-height: 1.45; color: var(--muted); }
+@media (max-width: 860px) {
+  .process-nav { flex-direction: row; overflow-x: auto; padding-left: 0; gap: 10px; padding-bottom: 8px; -webkit-overflow-scrolling: touch; }
+  .process-rail { display: none; }
+  .process-tab { flex-direction: column; align-items: center; text-align: center; min-width: 128px; border: 1px solid var(--line); gap: 8px; flex-shrink: 0; }
+  .process-tab::before { display: none; }
+  .process-tab-text small { display: none; }
+}
+
+.process-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 40px;
+  display: flex;
+  gap: 32px;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+@media (max-width: 640px) {
+  .process-panel { padding: 26px; flex-direction: column; text-align: center; }
+}
+.process-panel::after {
+  content: "";
+  position: absolute;
+  top: -30%; right: -10%;
+  width: 50%; aspect-ratio: 1;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 12%, transparent), transparent 75%);
+  pointer-events: none;
+}
+.process-ring { position: relative; flex-shrink: 0; width: 118px; height: 118px; }
+.process-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring-bg { fill: none; stroke: var(--line); stroke-width: 6; }
+.ring-fg { fill: none; stroke: var(--accent); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 0.6s cubic-bezier(.3,.8,.3,1); }
+.process-ring-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 0.88rem; color: var(--fg); }
+.process-copy { min-width: 0; position: relative; }
+.process-copy h3 { font-size: 1.35rem; font-weight: 700; margin-top: 10px; transition: opacity 0.2s ease, transform 0.2s ease; }
+.process-copy p { margin-top: 12px; color: var(--muted); font-size: 1rem; max-width: 52ch; line-height: 1.6; transition: opacity 0.2s ease, transform 0.2s ease; }
+.process-copy.swap h3, .process-copy.swap p { opacity: 0; transform: translateY(6px); }
+
+/* ---------- why wyber ---------- */
+.why-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+}
+@media (max-width: 760px) {
+  .why-grid { grid-template-columns: 1fr; }
+}
+.why-card {
+  display: flex;
+  gap: 18px;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.why-num {
+  font-family: var(--font-mono);
+  color: var(--accent-2);
+  font-size: 0.82rem;
+  flex-shrink: 0;
+  width: 30px;
+  padding-top: 3px;
+}
+.why-card h3 { font-size: 1.05rem; font-weight: 600; font-family: var(--font-body); }
+.why-card p { margin-top: 9px; color: var(--muted); font-size: 0.92rem; line-height: 1.58; }
+
+/* ---------- products ---------- */
+.product-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 40px;
+  position: relative;
+  overflow: hidden;
+}
+@media (max-width: 640px) {
+  .product-card { padding: 26px; border-radius: 18px; }
+}
+.product-card::after {
+  content: "";
+  position: absolute;
+  top: -40%; right: -15%;
+  width: 55%;
+  aspect-ratio: 1;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent-2) 14%, transparent), transparent 75%);
+  pointer-events: none;
+}
+.product-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  position: relative;
+}
+.product-id { display: flex; align-items: center; gap: 14px; }
+.product-mark {
+  width: 46px; height: 46px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, var(--accent-2)));
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.product-mark svg { width: 24px; height: 24px; }
+.product-name { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; }
+.product-tag { color: var(--muted); font-size: 0.95rem; margin-top: 2px; }
+.product-badge {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  padding: 7px 13px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.product-desc {
+  margin-top: 22px;
+  color: var(--muted);
+  font-size: 1.02rem;
+  max-width: 62ch;
+  position: relative;
+}
+.product-sub {
+  margin-top: 36px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  position: relative;
+}
+.agent-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  position: relative;
+}
+@media (max-width: 860px) {
+  .agent-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+  .agent-grid { grid-template-columns: 1fr; }
+}
+.agent-chip {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  min-width: 0;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.agent-chip:hover { border-color: var(--accent-2); transform: translateY(-2px); }
+.agent-chip .n {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+}
+.agent-chip h4 {
+  font-family: var(--font-body);
+  font-size: 0.98rem;
+  font-weight: 600;
+  margin-top: 6px;
+}
+.agent-chip p {
+  margin-top: 6px;
+  font-size: 0.86rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.capability-list {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 13px;
+  position: relative;
+}
+@media (max-width: 640px) {
+  .capability-list { grid-template-columns: 1fr; }
+}
+.capability-item {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  font-size: 0.92rem;
+  color: var(--fg);
+}
+.capability-item svg { flex-shrink: 0; margin-top: 3px; color: var(--accent-2); width: 15px; height: 15px; }
+.capability-item span { color: var(--muted); }
+
+.call-mock {
+  margin-top: 36px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px;
+  position: relative;
+}
+.call-mock .mock-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--muted);
+  margin-bottom: 16px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.call-mock .mock-head .live-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent-2);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-2) 20%, transparent);
+  flex-shrink: 0;
+}
+.call-mock .line {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+}
+.call-mock .who { color: var(--accent-2); flex-shrink: 0; }
+.call-mock .who.caller { color: var(--accent); }
+.call-mock .txt { color: var(--muted); line-height: 1.5; }
+
+/* ---------- product-foot ---------- */
+.product-foot {
+  margin-top: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  position: relative;
+}
+.product-stats {
+  display: flex;
+  gap: 26px;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.product-stats b { color: var(--fg); font-size: 0.95rem; display: block; }
+
+.more-products {
+  margin-top: 18px;
+  border: 1px dashed var(--line);
+  border-radius: 22px;
+  padding: 28px 40px;
+  color: var(--muted);
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+@media (max-width: 640px) { .more-products { padding: 22px; } }
+
+/* ---------- FAQ ---------- */
+.faq-list { display: flex; flex-direction: column; gap: 12px; }
+.faq-item {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.faq-q {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 0.98rem;
+  font-weight: 600;
+  padding: 20px 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+}
+.faq-q .chev { flex-shrink: 0; transition: transform 0.2s ease; color: var(--accent-2); }
+.faq-item.open .faq-q .chev { transform: rotate(180deg); }
+.faq-a { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; }
+.faq-a p { padding: 0 22px 20px; color: var(--muted); font-size: 0.92rem; line-height: 1.6; max-width: 68ch; }
+.faq-item.open .faq-a { max-height: 320px; }
+
+/* ---------- contact ---------- */
+.contact-wrap {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 56px;
+}
+@media (max-width: 860px) {
+  .contact-wrap { grid-template-columns: 1fr; gap: 36px; }
+}
+.contact-points { display: flex; flex-direction: column; gap: 22px; }
+.contact-point { display: flex; gap: 14px; }
+.contact-point .ic {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  color: var(--accent-2);
+}
+.contact-point .ic svg { width: 18px; height: 18px; }
+.contact-point h4 { font-size: 0.98rem; font-weight: 600; }
+.contact-point p { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
+
+form.lead-form {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 36px;
+}
+@media (max-width: 640px) { form.lead-form { padding: 24px; } }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 540px) { .field-row { grid-template-columns: 1fr; } }
+.field { margin-top: 18px; min-width: 0; }
+.field:first-child { margin-top: 0; }
+.field label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 7px;
+  color: var(--fg);
+}
+.field .opt { color: var(--muted); font-weight: 400; }
+.field input, .field select, .field textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  transition: border-color 0.15s ease;
+}
+.field textarea { resize: vertical; min-height: 96px; }
+.field input:focus, .field select:focus, .field textarea:focus {
+  outline: none;
+  border-color: var(--accent-2);
+}
+.field .err {
+  display: none;
+  color: var(--accent);
+  font-size: 0.8rem;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+}
+.field.invalid input, .field.invalid textarea { border-color: var(--accent); }
+.field.invalid .err { display: block; }
+.form-foot {
+  margin-top: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.form-foot small { color: var(--muted); font-size: 0.8rem; max-width: 30ch; }
+.lead-form button[type="submit"] { border: none; }
+
+.success-state {
+  display: none;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 10px 4px 4px;
+}
+.success-state.show { display: flex; }
+.lead-form.submitted .form-fields { display: none; }
+.success-icon {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent-2) 18%, transparent);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent-2);
+}
+.success-state h3 { font-size: 1.15rem; font-weight: 700; font-family: var(--font-body); }
+.success-state p { color: var(--muted); font-size: 0.92rem; max-width: 42ch; }
+
+/* ---------- footer ---------- */
+footer.site {
+  border-top: 1px solid var(--line);
+  padding-block: 56px 32px;
+  margin-top: 10px;
+}
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr 1fr;
+  gap: 36px;
+  padding-bottom: 40px;
+}
+@media (max-width: 760px) {
+  .footer-grid { grid-template-columns: 1fr 1fr; gap: 28px; }
+}
+@media (max-width: 480px) {
+  .footer-grid { grid-template-columns: 1fr; }
+}
+.footer-brand p {
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  max-width: 32ch;
+  line-height: 1.6;
+}
+.footer-col h5 {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+.footer-col a {
+  display: block;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.92rem;
+  margin-bottom: 11px;
+}
+.footer-col a:hover { color: var(--fg); }
+.footer-bottom {
+  border-top: 1px solid var(--line);
+  padding-top: 26px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.footer-links { display: flex; gap: 22px; font-size: 0.88rem; color: var(--muted); }
+.footer-links a { text-decoration: none; }
+.footer-links a:hover { color: var(--fg); }
+.copy { font-size: 0.82rem; color: var(--muted); font-family: var(--font-mono); }
+
+/* ---------- ambient background grid ---------- */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(color-mix(in srgb, var(--line) 80%, transparent) 1px, transparent 1px);
+  background-size: 26px 26px;
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 0;
+  animation: gridshift 50s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) { body::before { animation: none; } }
+@keyframes gridshift { from { background-position: 0 0; } to { background-position: 260px 260px; } }
+header.site, main, footer.site { position: relative; z-index: 1; }
+
+/* ---------- scroll reveal ---------- */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.6s cubic-bezier(.2,.7,.3,1), transform 0.6s cubic-bezier(.2,.7,.3,1);
+  will-change: opacity, transform;
+}
+[data-reveal].revealed { opacity: 1; transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] { opacity: 1; transform: none; transition: none; }
+}
+
+/* ---------- cursor-spotlight cards ---------- */
+.tilt { position: relative; isolation: isolate; }
+.tilt::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--accent-2) 16%, transparent), transparent 72%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.tilt:hover::before { opacity: 1; }
+
+/* ---------- hero accent glow ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .hero h1 em { animation: emglow 3.2s ease-in-out infinite; }
+}
+@keyframes emglow {
+  0%, 100% { text-shadow: 0 0 0 transparent; }
+  50% { text-shadow: 0 0 26px color-mix(in srgb, var(--accent) 50%, transparent); }
+}
+.brand-mark { transition: transform 0.3s ease; }
+.brand:hover .brand-mark { transform: rotate(10deg); }
+
+/* ---------- status chip ---------- */
+.status-chip {
+  position: absolute;
+  top: 10px; right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 13px;
+  backdrop-filter: blur(6px);
+  z-index: 2;
+}
+.status-chip .live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent-2);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-2) 22%, transparent);
+  flex-shrink: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .status-chip .live-dot { animation: blink 2.2s ease-in-out infinite; }
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* ---------- orchestration loop diagram ---------- */
+.loop-wrap { margin-top: 54px; }
+.loop-diagram {
+  position: relative;
+  width: min(480px, 92vw);
+  aspect-ratio: 1;
+  margin-inline: auto;
+}
+.loop-diagram svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.loop-track { fill: none; stroke: var(--line); stroke-width: 1.5; stroke-dasharray: 2 7; }
+.loop-chord { fill: none; stroke: color-mix(in srgb, var(--accent) 55%, var(--line)); stroke-width: 1.5; stroke-dasharray: 3 5; }
+.loop-dot { fill: var(--accent-2); }
+@media (prefers-reduced-motion: no-preference) {
+  .loop-dot { animation: looptravel 6s linear infinite; }
+  .loop-dot.d2 { animation-delay: -2s; }
+  .loop-dot.d3 { animation-delay: -4s; }
+}
+@keyframes looptravel { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+.loop-chord-dot { fill: var(--accent); opacity: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .loop-chord-dot { animation: escalate 5.5s ease-in-out infinite; }
+}
+@keyframes escalate {
+  0%, 8% { offset-distance: 0%; opacity: 0; }
+  14% { opacity: 1; }
+  46% { offset-distance: 100%; opacity: 1; }
+  54%, 100% { opacity: 0; offset-distance: 100%; }
+}
+.hub-core { fill: var(--surface); stroke: var(--accent); stroke-width: 2; }
+.hub-ping { fill: none; stroke: var(--accent); stroke-width: 1.5; opacity: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .hub-ping.p1 { animation: ping 3s ease-out infinite; }
+  .hub-ping.p2 { animation: ping 3s ease-out infinite 1.5s; }
+}
+@keyframes ping { 0% { r: 22; opacity: 0.55; } 100% { r: 70; opacity: 0; } }
+.hub-label {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  line-height: 1.4;
+  width: 72px;
+  pointer-events: none;
+}
+.loop-node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transform: translate(-50%, -50%);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.4);
+}
+.loop-node .loop-ic {
+  width: 30px; height: 30px;
+  border-radius: 9px;
+  background: var(--surface-2);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent-2);
+}
+.loop-node .loop-ic svg { width: 16px; height: 16px; }
+.n-top { top: 0; left: 50%; }
+.n-right { top: 50%; left: 100%; }
+.n-bottom { top: 100%; left: 50%; }
+.n-left { top: 50%; left: 0%; }
+@media (max-width: 480px) {
+  .loop-node { padding: 8px 10px; font-size: 0.66rem; gap: 5px; }
+  .loop-node .loop-ic { width: 24px; height: 24px; }
+  .loop-node .loop-ic svg { width: 13px; height: 13px; }
+  .hub-label { font-size: 0.52rem; width: 56px; }
+}
+.loop-legend {
+  margin-top: 48px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+@media (max-width: 760px) { .loop-legend { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .loop-legend { grid-template-columns: 1fr; } }
+.loop-legend-item { padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.loop-legend-item .n { color: var(--accent-2); font-size: 0.72rem; }
+.loop-legend-item h4 { margin-top: 8px; font-size: 0.92rem; font-weight: 600; font-family: var(--font-body); }
+.loop-legend-item p { margin-top: 6px; font-size: 0.84rem; color: var(--muted); line-height: 1.5; }
+</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700;800&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+</head>
+<body>
+<header class="site">
+  <div class="wrap nav">
+    <a href="#top" class="brand">
+      <svg class="brand-mark" viewBox="0 0 30 30" fill="none">
+        <rect width="30" height="30" rx="8" fill="var(--accent)"/>
+        <circle cx="9" cy="15" r="2.4" fill="var(--accent-ink)"/>
+        <circle cx="21" cy="9" r="2.4" fill="var(--accent-ink)"/>
+        <circle cx="21" cy="21" r="2.4" fill="var(--accent-ink)"/>
+        <path d="M9 15L21 9M9 15L21 21" stroke="var(--accent-ink)" stroke-width="1.6"/>
+      </svg>
+      Wyber
+    </a>
+    <nav class="nav-links">
+      <a href="#workflows">Workflows</a>
+      <a href="#how">How it works</a>
+      <a href="#platform">Platform</a>
+      <a href="products.html">Products</a>
+      <a href="#faq">FAQ</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <div class="nav-cta">
+      <a href="https://portal.wyberk.com/login" class="btn btn-ghost" target="_blank" rel="noopener">Log in</a>
+      <a href="#contact" class="btn btn-primary">Talk to us</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow">AI Automation for Enterprise</span>
+        <h1>Workflows that run <em>themselves.</em></h1>
+        <p class="lede">We build automation workflows and applications using AI for enterprises — driving measurable value and cutting operational costs, one repetitive workflow at a time.</p>
+        <div class="hero-actions">
+          <a href="#how" class="btn btn-primary">See how it works</a>
+          <a href="products.html" class="btn btn-ghost">View products</a>
+        </div>
+        <div class="hero-tags" aria-hidden="true">
+          <span>Voice AI</span>
+          <span>Workflow Orchestration</span>
+          <span>Human-in-the-loop</span>
+          <span>Real-time Analytics</span>
+        </div>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <span class="status-chip"><span class="live-dot"></span>Orchestration layer · online</span>
+        <svg viewBox="0 0 440 360" fill="none">
+          <path id="p1" class="trace-path" d="M40 300 C 120 300, 120 220, 200 220 S 280 140, 360 140" />
+          <path id="p2" class="trace-path" d="M40 300 C 90 260, 140 260, 180 300 S 280 320, 400 260" />
+          <path id="p3" class="trace-path" d="M200 220 L200 90 C200 60, 230 50, 260 50 L 340 50" />
+          <circle class="node-ring" cx="40" cy="300" r="16"/>
+          <circle class="node-dot" cx="40" cy="300" r="5"/>
+          <circle class="node-ring" cx="200" cy="220" r="14"/>
+          <circle class="node-dot" cx="200" cy="220" r="4.5"/>
+          <circle class="node-ring" cx="360" cy="140" r="18"/>
+          <circle class="node-dot" cx="360" cy="140" r="6"/>
+          <circle class="node-ring" cx="400" cy="260" r="13"/>
+          <circle class="node-dot" cx="400" cy="260" r="4"/>
+          <circle class="node-ring" cx="340" cy="50" r="12"/>
+          <circle class="node-dot" cx="340" cy="50" r="4"/>
+          <circle class="node-ring" cx="200" cy="90" r="11"/>
+          <circle class="pulse-dot" r="4" fill="var(--accent)" style="offset-path: path('M40 300 C 120 300, 120 220, 200 220 S 280 140, 360 140');"/>
+          <circle class="pulse-dot d2" r="4" fill="var(--accent)" style="offset-path: path('M40 300 C 90 260, 140 260, 180 300 S 280 320, 400 260');"/>
+          <circle class="pulse-dot d3" r="4" fill="var(--accent-2)" style="offset-path: path('M200 220 L200 90 C200 60, 230 50, 260 50 L 340 50');"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <section id="workflows">
+    <div class="wrap">
+      <div class="section-head" data-reveal>
+        <span class="eyebrow">Workflows We Automate</span>
+        <h2>Pick the workflow. We build the agent.</h2>
+        <p>Any process that follows a repeatable set of steps and a predictable set of exceptions is a candidate — these are the categories we see most often.</p>
+      </div>
+      <div class="usecase-grid">
+        <div class="usecase-card tilt" data-reveal>
+          <div class="usecase-ic">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="17" cy="8" r="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M15 20c0-2.6 1.6-4.8 4-5.7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+          <h3>Recruiting &amp; Hiring</h3>
+          <p>Screens applicants, schedules interviews, and follows up on candidates — without a recruiter chasing every call.</p>
+        </div>
+        <div class="usecase-card tilt" data-reveal>
+          <div class="usecase-ic">
+            <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 9h18M8 13h3M8 16h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+          <h3>Collections &amp; AR</h3>
+          <p>Reaches out on past-due invoices, confirms payment plans, and logs every outcome back to your system.</p>
+        </div>
+        <div class="usecase-card tilt" data-reveal>
+          <div class="usecase-ic">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 6.5C4 5.12 5.12 4 6.5 4h11C18.88 4 20 5.12 20 6.5v6c0 1.38-1.12 2.5-2.5 2.5H9l-4 4v-4H6.5C5.12 15 4 13.88 4 12.5v-6Z" stroke="currentColor" stroke-width="1.6"/></svg>
+          </div>
+          <h3>Customer Support</h3>
+          <p>Answers common questions instantly and routes anything unusual to the right person on your team.</p>
+        </div>
+        <div class="usecase-card tilt" data-reveal>
+          <div class="usecase-ic">
+            <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="17" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 9h18M8 2v4M16 2v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M8 14h3M13 14h3M8 17h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+          <h3>Scheduling &amp; Dispatch</h3>
+          <p>Books, confirms, and reschedules appointments against real-time availability — no double bookings.</p>
+        </div>
+        <div class="usecase-card tilt" data-reveal>
+          <div class="usecase-ic">
+            <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="3" width="16" height="18" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+          <h3>Back-Office Data Entry</h3>
+          <p>Pulls structured data out of calls, forms, and documents and writes it straight into your systems of record.</p>
+        </div>
+        <div class="usecase-card tilt" data-reveal>
+          <div class="usecase-ic">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 5-3.2 8.3-7 10-3.8-1.7-7-5-7-10V6l7-3Z" stroke="currentColor" stroke-width="1.6"/><path d="M9 12.2l2 2 4-4.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h3>Compliance &amp; QA</h3>
+          <p>Runs consistent checklists on every call or case, and flags exceptions instead of letting them slip through.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Our Process</span>
+        <h2>How it works</h2>
+        <p>Our streamlined approach delivers reliable business outcomes through a transparent, proven process that combines AI and human expertise.</p>
+      </div>
+      <div class="process-shell">
+        <div class="process-nav" id="processNav" role="tablist" aria-label="How it works steps">
+          <div class="process-rail"><div class="process-rail-fill" id="processRailFill"></div></div>
+          <button class="process-tab active" type="button" data-index="0" role="tab" aria-selected="true">
+            <span class="process-tab-num mono">01</span>
+            <span class="process-tab-text"><strong>Identify Workflow</strong><small>Target a repetitive business workflow that's consuming valuable resources.</small></span>
+          </button>
+          <button class="process-tab" type="button" data-index="1" role="tab" aria-selected="false">
+            <span class="process-tab-num mono">02</span>
+            <span class="process-tab-text"><strong>Document SOP</strong><small>Document your SOP or leverage our experts to build one.</small></span>
+          </button>
+          <button class="process-tab" type="button" data-index="2" role="tab" aria-selected="false">
+            <span class="process-tab-num mono">03</span>
+            <span class="process-tab-text"><strong>Build &amp; Deploy</strong><small>Engineers build and deploy task-specific AI agents.</small></span>
+          </button>
+          <button class="process-tab" type="button" data-index="3" role="tab" aria-selected="false">
+            <span class="process-tab-num mono">04</span>
+            <span class="process-tab-text"><strong>Execute Work</strong><small>Agents and human experts coordinate the work in real time.</small></span>
+          </button>
+          <button class="process-tab" type="button" data-index="4" role="tab" aria-selected="false">
+            <span class="process-tab-num mono">05</span>
+            <span class="process-tab-text"><strong>Track Outcomes</strong><small>Real-time dashboards show the improved metrics.</small></span>
+          </button>
+        </div>
+        <div class="process-panel">
+          <div class="process-ring" aria-hidden="true">
+            <svg viewBox="0 0 120 120">
+              <circle class="ring-bg" cx="60" cy="60" r="50"/>
+              <circle class="ring-fg" id="ringFg" cx="60" cy="60" r="50" stroke-dasharray="314.159" stroke-dashoffset="251.33"/>
+            </svg>
+            <span class="process-ring-label mono" id="ringLabel">01 / 05</span>
+          </div>
+          <div class="process-copy" id="processCopy">
+            <span class="eyebrow">Step <span id="panelStepNum">01</span></span>
+            <h3 id="panelTitle">Identify Workflow</h3>
+            <p id="panelDesc">Target a repetitive business workflow that's consuming valuable resources (e.g., recruiting, collections, support).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="platform">
+    <div class="wrap">
+      <div class="section-head" data-reveal>
+        <span class="eyebrow">Orchestration Platform</span>
+        <h2>Where agents and humans meet</h2>
+        <p>Every task has a clear owner and every handoff is logged — watch how work actually moves through the system.</p>
+      </div>
+      <div class="loop-wrap">
+        <div class="loop-diagram" aria-hidden="true">
+          <svg viewBox="0 0 400 400">
+            <circle class="loop-track" cx="200" cy="200" r="150"/>
+            <path class="loop-chord" d="M350 200 Q300 320 200 350"/>
+            <circle class="loop-chord-dot" r="5" style="offset-path: path('M350 200 Q300 320 200 350');"/>
+            <circle class="loop-dot" r="5" style="offset-path: circle(150px at 200px 200px);"/>
+            <circle class="loop-dot d2" r="5" style="offset-path: circle(150px at 200px 200px);"/>
+            <circle class="loop-dot d3" r="5" style="offset-path: circle(150px at 200px 200px);"/>
+            <circle class="hub-ping p1" cx="200" cy="200" r="22"/>
+            <circle class="hub-ping p2" cx="200" cy="200" r="22"/>
+            <circle class="hub-core" cx="200" cy="200" r="22"/>
+          </svg>
+          <span class="hub-label mono">Orchestrating in real time</span>
+          <div class="loop-node n-top">
+            <span class="loop-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7.5C4 6.12 5.12 5 6.5 5h11C18.88 5 20 6.12 20 7.5v6c0 1.38-1.12 2.5-2.5 2.5H9l-4 4v-4H6.5C5.12 16 4 14.88 4 13.5v-6Z" stroke="currentColor" stroke-width="1.6"/></svg></span>
+            <span>Incoming Work</span>
+          </div>
+          <div class="loop-node n-right">
+            <span class="loop-ic"><svg viewBox="0 0 24 24" fill="none"><rect x="6" y="6" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+            <span>AI Agents</span>
+          </div>
+          <div class="loop-node n-bottom">
+            <span class="loop-ic"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.2" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M9 18.3l2 2 3.5-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span>Human Oversight</span>
+          </div>
+          <div class="loop-node n-left">
+            <span class="loop-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19V10M11 19V5M18 19v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M3 19h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+            <span>Tracked Outcome</span>
+          </div>
+        </div>
+
+        <div class="loop-legend">
+          <div class="loop-legend-item" data-reveal>
+            <span class="n mono">01</span>
+            <h4>Incoming Work</h4>
+            <p>A call, message, or task enters the system.</p>
+          </div>
+          <div class="loop-legend-item" data-reveal>
+            <span class="n mono">02</span>
+            <h4>AI Agents</h4>
+            <p>Task-specific agents work the SOP end to end, and escalate when needed.</p>
+          </div>
+          <div class="loop-legend-item" data-reveal>
+            <span class="n mono">03</span>
+            <h4>Human Oversight</h4>
+            <p>Your team or ours reviews exceptions and judgment calls.</p>
+          </div>
+          <div class="loop-legend-item" data-reveal>
+            <span class="n mono">04</span>
+            <h4>Tracked Outcome</h4>
+            <p>Every result lands on a real-time dashboard, feeding the next cycle.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="why">
+    <div class="wrap">
+      <div class="section-head" data-reveal>
+        <span class="eyebrow">Why Wyber</span>
+        <h2>Built for one workflow at a time, not everything at once</h2>
+        <p>Generic chatbots try to do a little of everything. We go the other way — narrow, task-specific agents that actually finish the job.</p>
+      </div>
+      <div class="why-grid">
+        <div class="why-card tilt" data-reveal>
+          <span class="why-num mono">01</span>
+          <div>
+            <h3>Task-specific agents, not generic chatbots</h3>
+            <p>Each agent is built around one workflow and trained on your SOP, not stretched thin trying to handle every possible request.</p>
+          </div>
+        </div>
+        <div class="why-card tilt" data-reveal>
+          <span class="why-num mono">02</span>
+          <div>
+            <h3>Human oversight, built in</h3>
+            <p>An oversight team reviews outcomes and steps in whenever a call or task needs real human judgment.</p>
+          </div>
+        </div>
+        <div class="why-card tilt" data-reveal>
+          <span class="why-num mono">03</span>
+          <div>
+            <h3>Real outcomes, not vanity metrics</h3>
+            <p>Dashboards track the business metrics that matter — cycle time, cost per workflow, compliance — not just usage counts.</p>
+          </div>
+        </div>
+        <div class="why-card tilt" data-reveal>
+          <span class="why-num mono">04</span>
+          <div>
+            <h3>Built to fit your stack</h3>
+            <p>Agents connect to the calendars, CRMs, and systems you already run, instead of asking you to rip and replace.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="products">
+    <div class="wrap">
+      <div class="section-head" data-reveal>
+        <span class="eyebrow">Our Products</span>
+        <h2>Built by Wyber</h2>
+        <p>Task-specific AI applications, built with the same process, ready to put to work inside your business.</p>
+      </div>
+
+      <div class="product-card tilt" data-reveal>
+        <div class="product-top">
+          <div class="product-id">
+            <div class="product-mark">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M4 7.5C4 6.12 5.12 5 6.5 5h11C18.88 5 20 6.12 20 7.5v6c0 1.38-1.12 2.5-2.5 2.5H9l-4 4v-4H6.5C5.12 16 4 14.88 4 13.5v-6Z" fill="var(--accent-ink)"/>
+              </svg>
+            </div>
+            <div>
+              <div class="product-name">LeadOne</div>
+              <div class="product-tag">AI calling agents for sales, support &amp; scheduling</div>
+            </div>
+          </div>
+          <span class="product-badge">Flagship product</span>
+        </div>
+
+        <p class="product-desc">LeadOne puts a voice on your pipeline. It calls leads, answers customer questions, qualifies prospects, and books real meetings on a connected calendar — with live transcripts, call recordings, and outcome tracking for every conversation. Six pre-built agents cover the most common revenue and support workflows out of the box, each configurable to your script, voice, and escalation rules.</p>
+
+        <div class="product-foot">
+          <div class="product-stats">
+            <span><b>6</b>pre-built agents</span>
+            <span><b>24/7</b>calling availability</span>
+            <span><b>Live</b>transcripts &amp; recordings</span>
+          </div>
+          <a href="products.html" class="btn btn-primary">Explore all 6 agents</a>
+        </div>
+      </div>
+
+      <div class="more-products">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;color:var(--accent-2)"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        More Wyber products are in build. Tell us what workflow you want automated next.
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="wrap">
+      <div class="section-head" data-reveal>
+        <span class="eyebrow">Questions</span>
+        <h2>Frequently asked</h2>
+        <p>The things people usually ask before their first workflow audit.</p>
+      </div>
+      <div class="faq-list" id="faqList">
+        <div class="faq-item" data-reveal>
+          <button class="faq-q" type="button">
+            How long does it take to deploy an agent?
+            <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="faq-a"><p>Most task-specific agents go from kickoff to live calls within a couple of weeks, depending on how much of your SOP is already documented versus built from scratch with our team.</p></div>
+        </div>
+        <div class="faq-item" data-reveal>
+          <button class="faq-q" type="button">
+            Do your AI agents replace staff?
+            <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="faq-a"><p>No — agents take on the repetitive parts of a workflow so your team can focus on judgment calls, relationships, and exceptions. An oversight team stays in the loop on every deployment.</p></div>
+        </div>
+        <div class="faq-item" data-reveal>
+          <button class="faq-q" type="button">
+            What happens when a call or task needs a human?
+            <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="faq-a"><p>Every agent is built with clear handoff points. When something falls outside its instructions, it escalates to your team or to Wyber's oversight team instead of guessing or improvising.</p></div>
+        </div>
+        <div class="faq-item" data-reveal>
+          <button class="faq-q" type="button">
+            How do you handle data security?
+            <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="faq-a"><p>We follow standard security practices — encrypted data in transit and at rest, scoped access per workspace, and audit logging on key actions. We're happy to walk through specifics for your industry during a workflow audit.</p></div>
+        </div>
+        <div class="faq-item" data-reveal>
+          <button class="faq-q" type="button">
+            Can agents integrate with the tools we already use?
+            <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="faq-a"><p>Yes. Agents connect to calendars, CRMs, and internal systems through their APIs, so you're not replacing what already works — you're automating around it.</p></div>
+        </div>
+        <div class="faq-item" data-reveal>
+          <button class="faq-q" type="button">
+            How is pricing structured?
+            <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="faq-a"><p>Pricing depends on the workflow, call or task volume, and how much custom build work is involved. We'll put together a quote after the workflow audit.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Get Started</span>
+        <h2>Let's automate your next workflow</h2>
+        <p>Tell us about the process eating up your team's time. We'll come back with how we'd approach it.</p>
+      </div>
+
+      <div class="contact-wrap">
+        <div class="contact-points">
+          <div class="contact-point">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+            <div>
+              <h4>Workflow audit</h4>
+              <p>We'll scope the automation and estimate the impact before anything gets built.</p>
+            </div>
+          </div>
+          <div class="contact-point">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 9h18M8 2v4M16 2v4" stroke="currentColor" stroke-width="1.6"/></svg></span>
+            <div>
+              <h4>Response time</h4>
+              <p>A real person on our team replies within one business day.</p>
+            </div>
+          </div>
+          <div class="contact-point">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-5.1-9.5-9.2C.6 8.3 2 4.5 5.7 4a4.4 4.4 0 0 1 6.3 2 4.4 4.4 0 0 1 6.3-2c3.7.5 5.1 4.3 3.2 7.8C19 15.9 12 21 12 21Z" stroke="currentColor" stroke-width="1.6"/></svg></span>
+            <div>
+              <h4>Built with care</h4>
+              <p>Every deployment ships with an oversight team watching outcomes, not just uptime.</p>
+            </div>
+          </div>
+        </div>
+
+        <form class="lead-form" id="leadForm" novalidate>
+          <div class="form-fields">
+            <div class="field-row">
+              <div class="field" id="field-name">
+                <label for="f-name">Full name</label>
+                <input id="f-name" name="name" type="text" autocomplete="name" placeholder="Jordan Lee">
+                <div class="err">Enter your name.</div>
+              </div>
+              <div class="field" id="field-email">
+                <label for="f-email">Work email</label>
+                <input id="f-email" name="email" type="email" autocomplete="email" placeholder="jordan@company.com">
+                <div class="err">Enter a valid email.</div>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field" id="field-company">
+                <label for="f-company">Company</label>
+                <input id="f-company" name="company" type="text" autocomplete="organization" placeholder="Company name">
+                <div class="err">Enter your company.</div>
+              </div>
+              <div class="field" id="field-size">
+                <label for="f-size">Team size <span class="opt">(optional)</span></label>
+                <select id="f-size" name="teamSize">
+                  <option value="">Select one</option>
+                  <option>1–10</option>
+                  <option>11–50</option>
+                  <option>51–200</option>
+                  <option>201–1000</option>
+                  <option>1000+</option>
+                </select>
+              </div>
+            </div>
+            <div class="field" id="field-message">
+              <label for="f-message">What workflow do you want to automate?</label>
+              <textarea id="f-message" name="message" placeholder="e.g. We manually screen and schedule 40+ candidate calls a week..."></textarea>
+              <div class="err">Tell us a bit about the workflow.</div>
+            </div>
+          </div>
+
+          <div class="success-state" id="successState">
+            <span class="success-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <h3>Message sent</h3>
+            <p>Thanks — we've got your workflow details. Someone from Wyber will follow up within one business day.</p>
+            <button type="button" class="btn btn-ghost" id="resetForm">Send another</button>
+          </div>
+
+          <div class="form-foot" id="formFoot">
+            <small>No spam. We use this only to follow up about your workflow.</small>
+            <button type="submit" class="btn btn-primary" id="submitBtn">Send message</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="#top" class="brand" style="font-size:1rem;">
+          <svg class="brand-mark" viewBox="0 0 30 30" fill="none" style="width:24px;height:24px;">
+            <rect width="30" height="30" rx="8" fill="var(--accent)"/>
+            <circle cx="9" cy="15" r="2.4" fill="var(--accent-ink)"/>
+            <circle cx="21" cy="9" r="2.4" fill="var(--accent-ink)"/>
+            <circle cx="21" cy="21" r="2.4" fill="var(--accent-ink)"/>
+            <path d="M9 15L21 9M9 15L21 21" stroke="var(--accent-ink)" stroke-width="1.6"/>
+          </svg>
+          Wyber
+        </a>
+        <p>We build automation workflows and applications using AI for enterprises — driving value and saving costs.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Site</h5>
+        <a href="#workflows">Workflows</a>
+        <a href="#how">How it works</a>
+        <a href="#platform">Platform</a>
+        <a href="#why">Why Wyber</a>
+        <a href="products.html">Products</a>
+      </div>
+      <div class="footer-col">
+        <h5>Products</h5>
+        <a href="products.html">LeadOne</a>
+        <a href="products.html#agents">AI Sales Agent</a>
+        <a href="products.html#agents">AI Support Agent</a>
+        <a href="products.html#agents">AI Appointment Setter</a>
+      </div>
+      <div class="footer-col">
+        <h5>Get in touch</h5>
+        <a href="#contact">Talk to us</a>
+        <a href="#faq">FAQ</a>
+        <a href="#contact">Workflow audit</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-links">
+        <a href="#how">How it works</a>
+        <a href="products.html">Products</a>
+        <a href="#contact">Contact</a>
+      </div>
+      <span class="copy">© 2026 WYBER</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var form = document.getElementById("leadForm");
+  var submitBtn = document.getElementById("submitBtn");
+  var successState = document.getElementById("successState");
+  var formFoot = document.getElementById("formFoot");
+  var resetBtn = document.getElementById("resetForm");
+
+  var required = ["f-name", "f-email", "f-company", "f-message"];
+
+  function fieldWrap(id) {
+    return document.getElementById("field-" + id.replace("f-", ""));
+  }
+
+  function validate() {
+    var ok = true;
+    required.forEach(function (id) {
+      var el = document.getElementById(id);
+      var wrap = fieldWrap(id);
+      var val = (el.value || "").trim();
+      var valid = val.length > 0;
+      if (id === "f-email" && valid) {
+        valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+      }
+      if (wrap) wrap.classList.toggle("invalid", !valid);
+      if (!valid) ok = false;
+    });
+    return ok;
+  }
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (!validate()) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Sending…";
+
+    // Mockup only: no backend wired up yet in this preview.
+    setTimeout(function () {
+      form.classList.add("submitted");
+      successState.classList.add("show");
+      formFoot.style.display = "none";
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Send message";
+    }, 650);
+  });
+
+  resetBtn.addEventListener("click", function () {
+    form.reset();
+    form.classList.remove("submitted");
+    successState.classList.remove("show");
+    formFoot.style.display = "";
+    required.forEach(function (id) {
+      var wrap = fieldWrap(id);
+      if (wrap) wrap.classList.remove("invalid");
+    });
+  });
+
+  var faqItems = document.querySelectorAll("#faqList .faq-item");
+  faqItems.forEach(function (item) {
+    var btn = item.querySelector(".faq-q");
+    btn.addEventListener("click", function () {
+      var wasOpen = item.classList.contains("open");
+      faqItems.forEach(function (other) { other.classList.remove("open"); });
+      if (!wasOpen) item.classList.add("open");
+    });
+  });
+
+  // ---- cascading scroll-reveal: stagger siblings within the same parent ----
+  var revealEls = document.querySelectorAll("[data-reveal]");
+  var siblingCounts = new Map();
+  revealEls.forEach(function (el) {
+    var parent = el.parentElement;
+    var n = siblingCounts.get(parent) || 0;
+    el.style.transitionDelay = (Math.min(n, 8) * 0.06) + "s";
+    siblingCounts.set(parent, n + 1);
+  });
+  if ("IntersectionObserver" in window) {
+    var revealObserver = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("revealed");
+            revealObserver.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.15, rootMargin: "0px 0px -40px 0px" }
+    );
+    revealEls.forEach(function (el) { revealObserver.observe(el); });
+  } else {
+    revealEls.forEach(function (el) { el.classList.add("revealed"); });
+  }
+
+  // ---- "How it works" interactive process stepper ----
+  var processSteps = [
+    { title: "Identify Workflow", desc: "Target a repetitive business workflow that's consuming valuable resources (e.g., recruiting, collections, support)." },
+    { title: "Document SOP", desc: "Document your standard operating procedure or leverage our experts to create optimized workflows." },
+    { title: "Build & Deploy", desc: "Assembly engineers build and deploy task-specific AI agents supported by oversight team." },
+    { title: "Execute Work", desc: "Our integrated orchestration platform coordinates the work between AI agents and human experts." },
+    { title: "Track Outcomes", desc: "Monitor real-time dashboards showing improved metrics: faster cycles, lower costs, better compliance." }
+  ];
+  var processTabs = document.querySelectorAll("#processNav .process-tab");
+  var ringFg = document.getElementById("ringFg");
+  var ringLabel = document.getElementById("ringLabel");
+  var railFill = document.getElementById("processRailFill");
+  var panelStepNum = document.getElementById("panelStepNum");
+  var panelTitle = document.getElementById("panelTitle");
+  var panelDesc = document.getElementById("panelDesc");
+  var processCopy = document.getElementById("processCopy");
+  var ringCircumference = 2 * Math.PI * 50;
+  var processIndex = 0;
+  var processPaused = false;
+  var processPauseTimer = null;
+  var processAutoplayTimer = null;
+  var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function renderProcessStep(i) {
+    var step = processSteps[i];
+    var pad = function (n) { return (n < 10 ? "0" : "") + n; };
+    processTabs.forEach(function (tab, idx) {
+      var active = idx === i;
+      tab.classList.toggle("active", active);
+      tab.setAttribute("aria-selected", active ? "true" : "false");
+    });
+    if (railFill) railFill.style.height = ((i + 1) / processSteps.length) * 100 + "%";
+    if (ringFg) ringFg.style.strokeDashoffset = (ringCircumference - ringCircumference * ((i + 1) / processSteps.length)).toFixed(2);
+    if (ringLabel) ringLabel.textContent = pad(i + 1) + " / " + pad(processSteps.length);
+    if (processCopy) {
+      processCopy.classList.add("swap");
+      setTimeout(function () {
+        panelStepNum.textContent = pad(i + 1);
+        panelTitle.textContent = step.title;
+        panelDesc.textContent = step.desc;
+        processCopy.classList.remove("swap");
+      }, 180);
+    }
+  }
+
+  function goToProcessStep(i) {
+    processIndex = i;
+    renderProcessStep(processIndex);
+    processPaused = true;
+    if (processPauseTimer) clearTimeout(processPauseTimer);
+    processPauseTimer = setTimeout(function () { processPaused = false; }, 7000);
+  }
+
+  processTabs.forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      goToProcessStep(parseInt(tab.getAttribute("data-index"), 10));
+    });
+  });
+
+  if (processTabs.length && !reducedMotion) {
+    processAutoplayTimer = setInterval(function () {
+      if (processPaused) return;
+      processIndex = (processIndex + 1) % processSteps.length;
+      renderProcessStep(processIndex);
+    }, 4200);
+  }
+
+  // ---- cursor-spotlight on cards ----
+  document.querySelectorAll(".tilt").forEach(function (el) {
+    el.addEventListener("mousemove", function (e) {
+      var r = el.getBoundingClientRect();
+      el.style.setProperty("--mx", ((e.clientX - r.left) / r.width) * 100 + "%");
+      el.style.setProperty("--my", ((e.clientY - r.top) / r.height) * 100 + "%");
+    });
+  });
+})();
+</script>
+</body>
+</html>
