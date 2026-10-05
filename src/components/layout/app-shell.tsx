@@ -8,6 +8,7 @@ import { SidebarNav } from "./sidebar-nav";
 import { UserMenu } from "./user-menu";
 import { HeaderSearch } from "./header-search";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 function LogoMark({ className = "size-7" }: { className?: string }) {
@@ -73,6 +74,7 @@ export function AppShell({
           <div className="flex flex-1 justify-center">
             <HeaderSearch />
           </div>
+          <ThemeToggle />
           <UserMenu fullName={fullName} email={email} isSuperAdmin={isSuperAdmin} />
         </header>
         <main className="flex-1 overflow-y-auto p-4 md:p-6">

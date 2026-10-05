@@ -21,6 +21,12 @@ export function CallsOverTimeChart({ data }: { data: DailyPoint[] }) {
             <stop offset="0%" stopColor="var(--chart-2)" stopOpacity={0.35} />
             <stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0.02} />
           </linearGradient>
+          <filter id="lineGlow1" x="-20%" y="-50%" width="140%" height="200%">
+            <feDropShadow dx="0" dy="0" stdDeviation="2.5" floodColor="var(--chart-1)" floodOpacity="0.5" />
+          </filter>
+          <filter id="lineGlow2" x="-20%" y="-50%" width="140%" height="200%">
+            <feDropShadow dx="0" dy="0" stdDeviation="2.5" floodColor="var(--chart-2)" floodOpacity="0.5" />
+          </filter>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
         <XAxis
@@ -46,6 +52,7 @@ export function CallsOverTimeChart({ data }: { data: DailyPoint[] }) {
           stroke="var(--chart-1)"
           fill="url(#callsFill)"
           strokeWidth={2}
+          filter="url(#lineGlow1)"
         />
         <Area
           type="monotone"
@@ -54,6 +61,7 @@ export function CallsOverTimeChart({ data }: { data: DailyPoint[] }) {
           stroke="var(--chart-2)"
           fill="url(#appointmentsFill)"
           strokeWidth={2}
+          filter="url(#lineGlow2)"
         />
       </AreaChart>
     </ResponsiveContainer>

@@ -9,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DateRangeFilter } from "@/components/analytics/date-range-filter";
 import { CallsOverTimeChart, type DailyPoint } from "@/components/analytics/calls-over-time-chart";
 import { DistributionChart, type DistributionPoint } from "@/components/analytics/distribution-chart";
+import { DonutChart } from "@/components/analytics/donut-chart";
+import { RadialGaugeChart } from "@/components/analytics/radial-gauge-chart";
 
 export const metadata: Metadata = { title: "Analytics" };
 
@@ -143,6 +145,26 @@ export default async function AnalyticsPage({
         ))}
       </div>
 
+      <Card className="relative overflow-hidden">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.08]"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 15% 20%, var(--chart-1), transparent 45%), radial-gradient(circle at 85% 80%, var(--chart-2), transparent 45%)",
+          }}
+          aria-hidden
+        />
+        <CardHeader className="relative">
+          <CardTitle className="text-base">Key Rates</CardTitle>
+          <CardDescription>How this range is converting, at a glance</CardDescription>
+        </CardHeader>
+        <CardContent className="relative flex flex-wrap items-center justify-around gap-6 py-2">
+          <RadialGaugeChart label="Connection Rate" value={Number(connectionRate)} color="var(--chart-1)" />
+          <RadialGaugeChart label="Qualification Rate" value={Number(qualificationRate)} color="var(--chart-2)" />
+          <RadialGaugeChart label="Appointment Rate" value={Number(appointmentRate)} color="var(--chart-3)" />
+        </CardContent>
+      </Card>
+
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -181,7 +203,7 @@ export default async function AnalyticsPage({
             {leadStatusDistribution.length === 0 ? (
               <p className="py-10 text-center text-sm text-muted-foreground">No contacts yet.</p>
             ) : (
-              <DistributionChart data={leadStatusDistribution} />
+              <DonutChart data={leadStatusDistribution} />
             )}
           </CardContent>
         </Card>

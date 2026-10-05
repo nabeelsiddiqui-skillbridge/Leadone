@@ -20,7 +20,9 @@ export function StatCard({
     <Card
       className={cn(
         "border-0",
-        accent ? "bg-primary text-primary-foreground shadow-md" : "bg-card shadow-sm"
+        accent
+          ? "bg-primary text-primary-foreground shadow-[0_0_0_1px_color-mix(in_oklch,var(--primary)_40%,transparent),0_8px_28px_-8px_color-mix(in_oklch,var(--primary)_70%,transparent)]"
+          : "bg-card shadow-sm"
       )}
     >
       <CardContent className="flex flex-col gap-3">

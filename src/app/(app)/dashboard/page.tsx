@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { CallsOverTimeChart, type DailyPoint } from "@/components/analytics/calls-over-time-chart";
+import { DonutChart } from "@/components/analytics/donut-chart";
+import { RadialGaugeChart } from "@/components/analytics/radial-gauge-chart";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { RecentCallsTimeline, type RecentCallItem } from "@/components/dashboard/recent-calls-timeline";
 import { AgentTemplatesPromo } from "@/components/dashboard/agent-templates-promo";
@@ -115,6 +117,18 @@ export default async function DashboardPage() {
     .sort((a, b) => b.total - a.total)
     .slice(0, 3);
 
+  const callsByAgent = Array.from(agentStats.values())
+    .map((a) => ({ label: a.name, value: a.total }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
+
+  const bookingRate = totalCalls ? Math.round(((appointmentsBooked ?? 0) / totalCalls) * 100) : 0;
+  const connectedRate = recentCallsForAgents?.length
+    ? Math.round(
+        (recentCallsForAgents.filter((c) => c.status === "completed").length / recentCallsForAgents.length) * 100
+      )
+    : 0;
+
   const recentCallItems: RecentCallItem[] = (recentCalls ?? []).map((call) => {
     const contact = call.contact as unknown as { first_name: string | null; last_name: string | null; company: string | null } | null;
     const agent = call.agent as unknown as { name: string } | null;
@@ -165,6 +179,41 @@ export default async function DashboardPage() {
         {stats.map((stat) => (
           <StatCard key={stat.label} label={stat.label} value={stat.value} icon={stat.icon} accent={stat.accent} />
         ))}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="relative overflow-hidden lg:col-span-1">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.08]"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 20% 15%, var(--chart-1), transparent 50%), radial-gradient(circle at 80% 85%, var(--chart-2), transparent 50%)",
+            }}
+            aria-hidden
+          />
+          <CardHeader className="relative">
+            <CardTitle className="text-base">Live Rates</CardTitle>
+            <CardDescription>Connected vs. booked, last 30 days</CardDescription>
+          </CardHeader>
+          <CardContent className="relative flex items-center justify-around gap-4 py-2">
+            <RadialGaugeChart label="Connected" value={connectedRate} color="var(--chart-1)" />
+            <RadialGaugeChart label="Booked" value={bookingRate} color="var(--chart-2)" />
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">Calls by Agent</CardTitle>
+            <CardDescription>Volume share across your agents, last 30 days</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {callsByAgent.length === 0 ? (
+              <p className="py-10 text-center text-sm text-muted-foreground">No calls handled yet.</p>
+            ) : (
+              <DonutChart data={callsByAgent} />
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <div className="flex flex-col gap-4">
