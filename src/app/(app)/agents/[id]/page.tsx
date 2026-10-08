@@ -72,47 +72,58 @@ export default async function AgentDetailPage({
     notFound();
   }
 
-  const linkedKnowledgeBaseIds = (linkedKnowledgeBaseLinks ?? []).map((link) => link.knowledge_base_id);
-  const { data: knowledgeBases } =
-    linkedKnowledgeBaseIds.length > 0
-      ? await supabase
-          .from("knowledge_bases")
-          .select(
-            "id, name, description, created_at, documents:knowledge_documents(id, name, source_type, source_url, status, error_message, created_at, chunks:knowledge_chunks(count))"
-          )
-          .in("id", linkedKnowledgeBaseIds)
-          .order("created_at", { ascending: true })
-      : { data: [] as never[] };
+  let agentKnowledgeBases: AgentKnowledgeBase[] = [];
+  try {
+    const linkedKnowledgeBaseIds = (linkedKnowledgeBaseLinks ?? [])
+      .map((link) => link.knowledge_base_id)
+      .filter((kbId): kbId is string => typeof kbId === "string");
 
-  const agentKnowledgeBases: AgentKnowledgeBase[] = (knowledgeBases ?? []).map((kb) => {
-    const documents = (kb.documents ?? []) as unknown as Array<{
-      id: string;
-      name: string;
-      source_type: string;
-      source_url: string | null;
-      status: Database["public"]["Tables"]["knowledge_documents"]["Row"]["status"];
-      error_message: string | null;
-      created_at: string;
-      chunks: { count: number }[] | null;
-    }>;
-    return {
-      id: kb.id,
-      name: kb.name,
-      description: kb.description,
-      documents: documents
-        .map((doc) => ({
-          id: doc.id,
-          name: doc.name,
-          source_type: doc.source_type,
-          source_url: doc.source_url,
-          status: doc.status,
-          error_message: doc.error_message,
-          chunkCount: Array.isArray(doc.chunks) ? (doc.chunks[0]?.count ?? 0) : 0,
-          createdAt: doc.created_at,
-        }))
-        .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)),
-    };
-  });
+    const { data: knowledgeBases } =
+      linkedKnowledgeBaseIds.length > 0
+        ? await supabase
+            .from("knowledge_bases")
+            .select(
+              "id, name, description, created_at, documents:knowledge_documents(id, name, source_type, source_url, status, error_message, created_at, chunks:knowledge_chunks(count))"
+            )
+            .in("id", linkedKnowledgeBaseIds)
+            .order("created_at", { ascending: true })
+        : { data: [] as never[] };
+
+    agentKnowledgeBases = (knowledgeBases ?? []).map((kb) => {
+      const documents = (Array.isArray(kb.documents) ? kb.documents : []) as unknown as Array<{
+        id: string;
+        name: string;
+        source_type: string;
+        source_url: string | null;
+        status: Database["public"]["Tables"]["knowledge_documents"]["Row"]["status"];
+        error_message: string | null;
+        created_at: string;
+        chunks: { count: number }[] | null;
+      }>;
+      return {
+        id: kb.id,
+        name: kb.name,
+        description: kb.description,
+        documents: documents
+          .map((doc) => ({
+            id: doc.id,
+            name: doc.name,
+            source_type: doc.source_type,
+            source_url: doc.source_url,
+            status: doc.status,
+            error_message: doc.error_message,
+            chunkCount: Array.isArray(doc.chunks) ? (doc.chunks[0]?.count ?? 0) : 0,
+            createdAt: doc.created_at,
+          }))
+          .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)),
+      };
+    });
+  } catch (err) {
+    // Knowledge bases are a secondary panel on this page — never let a
+    // problem loading them take down the whole agent page.
+    console.error("Failed to load agent knowledge bases", err);
+    agentKnowledgeBases = [];
+  }
 
   const [{ count: callsMade }, { count: callsConnected }, { count: appointmentsBooked }] = await Promise.all([
     supabase.from("calls").select("id", { count: "exact", head: true }).eq("workspace_id", workspace.id).eq("agent_id", id),
