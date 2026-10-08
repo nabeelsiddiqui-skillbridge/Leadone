@@ -24,6 +24,8 @@ export interface AgentTemplateDefinition {
   features: string[];
   icon: LucideIcon;
   accentColor: string;
+  /** Whether this template is meant to call out (outbound), answer calls on an assigned number (inbound), or either. */
+  callDirection: "outbound" | "inbound" | "both";
   voice: string;
   responseLength: "concise" | "balanced" | "detailed";
   creativity: number;
@@ -65,6 +67,7 @@ export const AGENT_TEMPLATES: AgentTemplateDefinition[] = [
     ],
     icon: Target,
     accentColor: "#2563EB",
+    callDirection: "both",
     voice: "cedar",
     responseLength: "balanced",
     creativity: 0.4,
@@ -118,6 +121,7 @@ export const AGENT_TEMPLATES: AgentTemplateDefinition[] = [
     ],
     icon: Headset,
     accentColor: "#0891B2",
+    callDirection: "both",
     voice: "sage",
     responseLength: "concise",
     creativity: 0.2,
@@ -169,6 +173,7 @@ export const AGENT_TEMPLATES: AgentTemplateDefinition[] = [
     ],
     icon: CalendarCheck,
     accentColor: "#059669",
+    callDirection: "both",
     voice: "coral",
     responseLength: "concise",
     creativity: 0.3,
@@ -217,6 +222,7 @@ export const AGENT_TEMPLATES: AgentTemplateDefinition[] = [
     ],
     icon: PhoneCall,
     accentColor: "#7C3AED",
+    callDirection: "inbound",
     voice: "marin",
     responseLength: "concise",
     creativity: 0.3,
@@ -260,6 +266,7 @@ export const AGENT_TEMPLATES: AgentTemplateDefinition[] = [
     ],
     icon: ShoppingBag,
     accentColor: "#DC2626",
+    callDirection: "both",
     voice: "shimmer",
     responseLength: "concise",
     creativity: 0.35,
@@ -302,6 +309,7 @@ export const AGENT_TEMPLATES: AgentTemplateDefinition[] = [
     ],
     icon: Home,
     accentColor: "#B45309",
+    callDirection: "both",
     voice: "verse",
     responseLength: "balanced",
     creativity: 0.4,

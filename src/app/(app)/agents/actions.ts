@@ -41,6 +41,7 @@ export interface AgentFormValues {
   silence_timeout_seconds: number;
   end_call_rules: string | null;
   knowledge_base_ids: string[];
+  call_direction: "outbound" | "inbound" | "both";
 }
 
 function toAgentFields(values: AgentFormValues) {
@@ -68,6 +69,7 @@ function toAgentFields(values: AgentFormValues) {
     max_call_duration_seconds: values.max_call_duration_seconds,
     silence_timeout_seconds: values.silence_timeout_seconds,
     end_call_rules: values.end_call_rules || null,
+    call_direction: values.call_direction,
   } satisfies Partial<AgentInsert>;
 }
 
@@ -208,6 +210,7 @@ export async function duplicateAgentAction(agentId: string): Promise<AgentAction
     max_call_duration_seconds: original.max_call_duration_seconds,
     silence_timeout_seconds: original.silence_timeout_seconds,
     end_call_rules: original.end_call_rules,
+    call_direction: original.call_direction,
     status: "draft",
     created_by: user?.id ?? null,
   };
@@ -330,6 +333,7 @@ export async function activateAgentTemplateAction(input: ActivateTemplateInput):
       interruptions_enabled: template.interruptionsEnabled,
       appointment_booking_enabled: template.appointmentBookingEnabled,
       end_call_rules: template.endCallRules,
+      call_direction: template.callDirection,
       status: "active",
       created_by: user?.id ?? null,
     })
@@ -341,34 +345,39 @@ export async function activateAgentTemplateAction(input: ActivateTemplateInput):
   }
 
   // Companion calling list - draft until leads are actually added, same
-  // sensible defaults the manual campaign wizard starts with.
-  const { data: defaultNumber } = await supabase
-    .from("phone_numbers")
-    .select("id")
-    .eq("workspace_id", workspace.id)
-    .eq("is_default", true)
-    .eq("status", "active")
-    .maybeSingle();
+  // sensible defaults the manual campaign wizard starts with. Skipped for
+  // inbound-only templates (e.g. Receptionist): campaigns are an outbound
+  // dialer, so there's nothing for one to do on an agent that only answers
+  // calls on an assigned phone number instead.
+  if (template.callDirection !== "inbound") {
+    const { data: defaultNumber } = await supabase
+      .from("phone_numbers")
+      .select("id")
+      .eq("workspace_id", workspace.id)
+      .eq("is_default", true)
+      .eq("status", "active")
+      .maybeSingle();
 
-  await supabase.from("campaigns").insert({
-    workspace_id: workspace.id,
-    agent_id: agent.id,
-    phone_number_id: defaultNumber?.id ?? null,
-    name: `${template.name} - ${companyName}`,
-    status: "draft",
-    timezone_mode: "contact_local",
-    days_of_week: [1, 2, 3, 4, 5],
-    calling_start_time: "09:00",
-    calling_end_time: "18:00",
-    daily_call_limit: 50,
-    concurrency_limit: 2,
-    max_attempts: 3,
-    retry_no_answer_minutes: 240,
-    retry_busy_minutes: 60,
-    retry_failed_minutes: 120,
-    voicemail_action: "leave_message",
-    created_by: user?.id ?? null,
-  });
+    await supabase.from("campaigns").insert({
+      workspace_id: workspace.id,
+      agent_id: agent.id,
+      phone_number_id: defaultNumber?.id ?? null,
+      name: `${template.name} - ${companyName}`,
+      status: "draft",
+      timezone_mode: "contact_local",
+      days_of_week: [1, 2, 3, 4, 5],
+      calling_start_time: "09:00",
+      calling_end_time: "18:00",
+      daily_call_limit: 50,
+      concurrency_limit: 2,
+      max_attempts: 3,
+      retry_no_answer_minutes: 240,
+      retry_busy_minutes: 60,
+      retry_failed_minutes: 120,
+      voicemail_action: "leave_message",
+      created_by: user?.id ?? null,
+    });
+  }
 
   revalidatePath("/agents");
   redirect(`/agents/${agent.id}?activated=1`);

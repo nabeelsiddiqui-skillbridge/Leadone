@@ -40,6 +40,7 @@ const formSchema = z
     name: z.string().trim().min(1, "Agent name is required").max(200),
     company_name: z.string().trim().max(200),
     agent_role: z.string().trim().max(200),
+    call_direction: z.enum(["outbound", "inbound", "both"]),
     primary_objective: z.string().trim().max(1000),
     language: z.string().trim().min(1, "Language is required").max(20),
     accent: z.string().trim().max(100),
@@ -88,6 +89,7 @@ const DEFAULT_VALUES: FormValues = {
   name: "",
   company_name: "",
   agent_role: "",
+  call_direction: "outbound",
   primary_objective: "",
   language: "en-US",
   accent: "",
@@ -226,6 +228,32 @@ export function AgentForm({ mode, agentId, defaultValues, knowledgeBases }: Agen
                       <FormControl>
                         <Input placeholder="e.g. Sales development rep" {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="call_direction"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Call direction</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="outbound">Outbound — used in campaigns</SelectItem>
+                          <SelectItem value="inbound">Inbound — answers calls on a number</SelectItem>
+                          <SelectItem value="both">Both</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Outbound agents can be assigned to campaigns. Inbound agents can be assigned to a phone
+                        number on the Phone Numbers page to answer calls, like a receptionist.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

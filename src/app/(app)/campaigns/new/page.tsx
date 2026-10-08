@@ -19,6 +19,7 @@ export default async function NewCampaignPage() {
         .select("id, name, agent_role, voice")
         .eq("workspace_id", workspace.id)
         .eq("status", "active")
+        .in("call_direction", ["outbound", "both"])
         .order("name"),
       supabase
         .from("phone_numbers")

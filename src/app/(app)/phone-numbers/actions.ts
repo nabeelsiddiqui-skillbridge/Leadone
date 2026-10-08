@@ -81,6 +81,33 @@ export async function togglePhoneNumberStatusAction(id: string, nextStatus: "act
   revalidatePath("/phone-numbers");
 }
 
+export async function setInboundAgentAction(id: string, agentId: string | null): Promise<ActionState> {
+  const { workspace } = await requireCurrentWorkspace();
+  const supabase = await createClient();
+
+  if (agentId) {
+    const { data: agent } = await supabase
+      .from("agents")
+      .select("id, call_direction")
+      .eq("id", agentId)
+      .eq("workspace_id", workspace.id)
+      .maybeSingle();
+    if (!agent) return { error: "Agent not found." };
+    if (agent.call_direction === "outbound") {
+      return { error: "This agent is outbound-only. Set its call direction to Inbound or Both first." };
+    }
+  }
+
+  await supabase
+    .from("phone_numbers")
+    .update({ agent_id: agentId })
+    .eq("workspace_id", workspace.id)
+    .eq("id", id);
+
+  revalidatePath("/phone-numbers");
+  return {};
+}
+
 export async function removePhoneNumberAction(id: string) {
   const { workspace } = await requireCurrentWorkspace();
   const supabase = await createClient();

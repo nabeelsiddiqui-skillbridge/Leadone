@@ -8,6 +8,7 @@ export type PlatformRole = "user" | "super_admin";
 export type WorkspaceRole = "owner" | "admin" | "member";
 
 export type AgentStatus = "draft" | "active" | "inactive";
+export type CallDirection = "outbound" | "inbound" | "both";
 export type CampaignStatus = "draft" | "scheduled" | "running" | "paused" | "completed" | "stopped" | "error";
 export type ContactStatus =
   | "new" | "queued" | "calling" | "connected" | "qualified" | "appointment_booked"
@@ -102,6 +103,7 @@ export interface Database {
           capabilities: Json;
           status: "active" | "inactive" | "error";
           is_default: boolean;
+          agent_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -201,6 +203,7 @@ export interface Database {
           max_call_duration_seconds: number;
           silence_timeout_seconds: number;
           end_call_rules: string | null;
+          call_direction: CallDirection;
           status: AgentStatus;
           created_by: string | null;
           created_at: string;

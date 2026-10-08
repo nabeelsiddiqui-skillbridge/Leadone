@@ -120,6 +120,7 @@ export default async function AgentDetailPage({
     name: agent.name,
     company_name: agent.company_name ?? "",
     agent_role: agent.agent_role ?? "",
+    call_direction: agent.call_direction as "outbound" | "inbound" | "both",
     primary_objective: agent.primary_objective ?? "",
     language: agent.language,
     accent: agent.accent ?? "",

@@ -15,10 +15,15 @@ type AgentRow = Database["public"]["Tables"]["agents"]["Row"];
 /** A single, plain-language summary of what an agent is doing right now. */
 function callingSummary(
   agentStatus: AgentStatus,
-  campaign: { status: CampaignStatus } | undefined
+  campaign: { status: CampaignStatus } | undefined,
+  callDirection: string
 ): { label: string; variant: "success" | "secondary" | "outline" | "destructive" } {
   if (agentStatus === "inactive") return { label: "Inactive", variant: "secondary" };
-  if (!campaign) return { label: "Not calling yet", variant: "outline" };
+  if (!campaign) {
+    return callDirection === "inbound"
+      ? { label: "Inbound only", variant: "outline" }
+      : { label: "Not calling yet", variant: "outline" };
+  }
   switch (campaign.status) {
     case "running":
       return { label: "Calling now", variant: "success" };
@@ -97,7 +102,7 @@ export async function AgentsCallingTable() {
         <TableBody>
           {agents.map((agent) => {
             const campaign = primaryCampaignByAgent.get(agent.id);
-            const summary = callingSummary(agent.status, campaign);
+            const summary = callingSummary(agent.status, campaign, agent.call_direction);
             return (
               <TableRow key={agent.id}>
                 <TableCell className="font-medium">
@@ -116,6 +121,13 @@ export async function AgentsCallingTable() {
                         size="sm"
                         compact
                       />
+                    ) : agent.call_direction === "inbound" ? (
+                      <Link
+                        href="/phone-numbers"
+                        className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+                      >
+                        Assign a number
+                      </Link>
                     ) : (
                       <Link
                         href={`/agents/${agent.id}#calling`}
