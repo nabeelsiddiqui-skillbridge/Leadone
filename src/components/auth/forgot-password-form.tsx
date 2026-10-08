@@ -19,7 +19,7 @@ export function ForgotPasswordForm() {
     <Card>
       <CardHeader>
         <CardTitle>Reset your password</CardTitle>
-        <CardDescription>We&apos;ll email you a 6-digit code to reset it.</CardDescription>
+        <CardDescription>We&apos;ll email you a code to reset it.</CardDescription>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="grid gap-4">

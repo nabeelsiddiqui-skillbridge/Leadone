@@ -19,7 +19,7 @@ export function ResetPasswordForm({ defaultEmail = "" }: { defaultEmail?: string
       <CardHeader>
         <CardTitle>Enter your code</CardTitle>
         <CardDescription>
-          Enter the 6-digit code we emailed you, then choose a new password.
+          Enter the code we emailed you, then choose a new password.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -34,16 +34,16 @@ export function ResetPasswordForm({ defaultEmail = "" }: { defaultEmail?: string
             <Input id="email" name="email" type="email" autoComplete="email" defaultValue={defaultEmail} required />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="code">6-digit code</Label>
+            <Label htmlFor="code">Code from your email</Label>
             <Input
               id="code"
               name="code"
               type="text"
               inputMode="numeric"
-              pattern="\d{6}"
-              maxLength={6}
+              pattern="\d{6,10}"
+              maxLength={10}
               autoComplete="one-time-code"
-              placeholder="123456"
+              placeholder="12345678"
               className="tracking-[0.3em] text-center font-mono"
               required
             />

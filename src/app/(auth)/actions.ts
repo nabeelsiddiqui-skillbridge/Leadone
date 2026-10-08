@@ -112,8 +112,8 @@ export async function resetPasswordAction(
   const confirmPassword = String(formData.get("confirm_password") ?? "");
 
   if (!email) return { error: "Email is required." };
-  if (!/^\d{6}$/.test(code)) {
-    return { error: "Enter the 6-digit code from your email." };
+  if (!/^\d{6,10}$/.test(code)) {
+    return { error: "Enter the code from your email." };
   }
   if (password.length < 8) {
     return { error: "Password must be at least 8 characters." };
