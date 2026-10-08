@@ -12,9 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
@@ -35,7 +35,20 @@ import {
 
 import { createAgentAction, updateAgentAction, type AgentFormValues } from "@/app/(app)/agents/actions";
 import { VoicePicker } from "@/components/agents/voice-picker";
+import { NewKnowledgeBaseDialog } from "@/components/knowledge-base/new-knowledge-base-dialog";
+import { AddContentDialog } from "@/components/knowledge-base/add-content-dialog";
+import { DocumentStatusBadge } from "@/components/knowledge-base/document-status-badge";
+import { DocumentRowActions } from "@/components/knowledge-base/document-row-actions";
+import { KnowledgeBaseRowActions } from "@/components/knowledge-base/knowledge-base-row-actions";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import type { Database } from "@/lib/supabase/database.types";
 import { cn } from "@/lib/utils";
+
+const SOURCE_TYPE_LABEL: Record<string, string> = {
+  text: "Text",
+  file: "File",
+  url: "URL",
+};
 
 const formSchema = z
   .object({
@@ -73,7 +86,6 @@ const formSchema = z
       .min(1, "Minimum is 1 second")
       .max(120, "Maximum is 120 seconds"),
     end_call_rules: z.string().trim().max(4000),
-    knowledge_base_ids: z.array(z.string()),
   })
   .superRefine((data, ctx) => {
     if (data.call_transfer_enabled && data.transfer_phone_number.trim().length === 0) {
@@ -112,19 +124,33 @@ const DEFAULT_VALUES: FormValues = {
   max_call_duration_seconds: 900,
   silence_timeout_seconds: 10,
   end_call_rules: "",
-  knowledge_base_ids: [],
 };
 
-export interface KnowledgeBaseOption {
+type KnowledgeDocumentStatus = Database["public"]["Tables"]["knowledge_documents"]["Row"]["status"];
+
+export interface AgentKnowledgeDocument {
   id: string;
   name: string;
+  source_type: string;
+  source_url: string | null;
+  status: KnowledgeDocumentStatus;
+  error_message: string | null;
+  chunkCount: number;
+  createdAt: string;
+}
+
+export interface AgentKnowledgeBase {
+  id: string;
+  name: string;
+  description: string | null;
+  documents: AgentKnowledgeDocument[];
 }
 
 export interface AgentFormProps {
   mode: "create" | "edit";
   agentId?: string;
   defaultValues?: Partial<FormValues>;
-  knowledgeBases: KnowledgeBaseOption[];
+  knowledgeBases: AgentKnowledgeBase[];
 }
 
 function toActionValues(values: FormValues): AgentFormValues {
@@ -692,55 +718,121 @@ export function AgentForm({ mode, agentId, defaultValues, knowledgeBases }: Agen
             </Card>
           </TabsContent>
 
-          <TabsContent value="knowledge">
-            <Card>
-              <CardHeader>
-                <CardTitle>Knowledge</CardTitle>
-                <CardDescription>
-                  Knowledge bases the agent can draw on to answer questions during a call.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {knowledgeBases.length === 0 ? (
+          <TabsContent value="knowledge" className="flex flex-col gap-6">
+            {mode === "create" ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Knowledge</CardTitle>
+                  <CardDescription>
+                    Documents this agent can search while talking to callers — pricing, FAQs, policies, anything
+                    it needs to answer questions accurately.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
                   <p className="text-sm text-muted-foreground">
-                    No knowledge bases yet — build one at /knowledge-base.
+                    Save this agent first — once it&apos;s created you can come back here to add a knowledge base.
                   </p>
-                ) : (
-                  <FormField
-                    control={form.control}
-                    name="knowledge_base_ids"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex flex-col gap-3">
-                          {knowledgeBases.map((kb) => {
-                            const checked = field.value.includes(kb.id);
-                            return (
-                              <div key={kb.id} className="flex items-center gap-2">
-                                <Checkbox
-                                  id={`kb-${kb.id}`}
-                                  checked={checked}
-                                  onCheckedChange={(value) => {
-                                    if (value) {
-                                      field.onChange([...field.value, kb.id]);
-                                    } else {
-                                      field.onChange(field.value.filter((id) => id !== kb.id));
-                                    }
-                                  }}
-                                />
-                                <label htmlFor={`kb-${kb.id}`} className="text-sm">
-                                  {kb.name}
-                                </label>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {knowledgeBases.length === 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Knowledge</CardTitle>
+                      <CardDescription>
+                        Documents this agent can search while talking to callers — pricing, FAQs, policies,
+                        anything it needs to answer questions accurately.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-col items-start gap-3">
+                      <p className="text-sm text-muted-foreground">
+                        No knowledge base yet for this agent.
+                      </p>
+                      <NewKnowledgeBaseDialog agentId={agentId!} />
+                    </CardContent>
+                  </Card>
                 )}
-              </CardContent>
-            </Card>
+
+                {knowledgeBases.map((kb) => (
+                  <Card key={kb.id}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <CardTitle>{kb.name}</CardTitle>
+                          {kb.description && <CardDescription>{kb.description}</CardDescription>}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <AddContentDialog knowledgeBaseId={kb.id} />
+                          <KnowledgeBaseRowActions id={kb.id} name={kb.name} />
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {kb.documents.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                          No documents yet. Add plain text, upload a file (.txt, .csv, .pdf, .docx), or pull in a
+                          URL — each is chunked and embedded automatically.
+                        </p>
+                      ) : (
+                        <div className="overflow-hidden rounded-xl border">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Source</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Chunks</TableHead>
+                                <TableHead>Added</TableHead>
+                                <TableHead className="w-10" />
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {kb.documents.map((doc) => (
+                                <TableRow key={doc.id}>
+                                  <TableCell className="max-w-xs">
+                                    <p className="truncate font-medium">{doc.name}</p>
+                                    {doc.status === "error" && doc.error_message && (
+                                      <p className="truncate text-xs text-destructive">{doc.error_message}</p>
+                                    )}
+                                    {doc.source_type === "url" && doc.source_url && (
+                                      <p className="truncate text-xs text-muted-foreground">{doc.source_url}</p>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline">
+                                      {SOURCE_TYPE_LABEL[doc.source_type] ?? doc.source_type}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <DocumentStatusBadge status={doc.status} />
+                                  </TableCell>
+                                  <TableCell className="tabular-nums">{doc.chunkCount}</TableCell>
+                                  <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
+                                  <TableCell>
+                                    <DocumentRowActions
+                                      documentId={doc.id}
+                                      documentName={doc.name}
+                                      status={doc.status}
+                                    />
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+
+                {knowledgeBases.length > 0 && (
+                  <div>
+                    <NewKnowledgeBaseDialog agentId={agentId!} />
+                  </div>
+                )}
+              </>
+            )}
           </TabsContent>
         </Tabs>
 

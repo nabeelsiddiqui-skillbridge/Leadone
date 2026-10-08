@@ -2,22 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
-import { requireCurrentWorkspace } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
 import { AgentForm } from "@/components/agents/agent-form";
 
 export const metadata: Metadata = { title: "New agent" };
 
-export default async function NewAgentPage() {
-  const { workspace } = await requireCurrentWorkspace();
-  const supabase = await createClient();
-
-  const { data: knowledgeBases } = await supabase
-    .from("knowledge_bases")
-    .select("id, name")
-    .eq("workspace_id", workspace.id)
-    .order("name", { ascending: true });
-
+export default function NewAgentPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -34,7 +23,7 @@ export default async function NewAgentPage() {
         </p>
       </div>
 
-      <AgentForm mode="create" knowledgeBases={knowledgeBases ?? []} />
+      <AgentForm mode="create" knowledgeBases={[]} />
     </div>
   );
 }

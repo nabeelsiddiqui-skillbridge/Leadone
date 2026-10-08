@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-export function NewKnowledgeBaseDialog() {
+export function NewKnowledgeBaseDialog({ agentId }: { agentId: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +64,7 @@ export function NewKnowledgeBaseDialog() {
           </DialogDescription>
         </DialogHeader>
         <form ref={formRef} action={handleSubmit} className="grid gap-4">
+          <input type="hidden" name="agent_id" value={agentId} />
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>

@@ -40,7 +40,6 @@ export interface AgentFormValues {
   max_call_duration_seconds: number;
   silence_timeout_seconds: number;
   end_call_rules: string | null;
-  knowledge_base_ids: string[];
   call_direction: "outbound" | "inbound" | "both";
 }
 
@@ -73,33 +72,6 @@ function toAgentFields(values: AgentFormValues) {
   } satisfies Partial<AgentInsert>;
 }
 
-async function syncKnowledgeBaseLinks(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  agentId: string,
-  knowledgeBaseIds: string[]
-) {
-  // Simplest correct approach: replace the full set of links every save.
-  const { error: deleteError } = await supabase
-    .from("agent_knowledge_bases")
-    .delete()
-    .eq("agent_id", agentId);
-  if (deleteError) {
-    return deleteError.message;
-  }
-
-  if (knowledgeBaseIds.length === 0) {
-    return null;
-  }
-
-  const { error: insertError } = await supabase.from("agent_knowledge_bases").insert(
-    knowledgeBaseIds.map((knowledgeBaseId) => ({
-      agent_id: agentId,
-      knowledge_base_id: knowledgeBaseId,
-    }))
-  );
-  return insertError?.message ?? null;
-}
-
 export async function createAgentAction(values: AgentFormValues): Promise<AgentActionResult> {
   const { workspace } = await requireCurrentWorkspace();
   const supabase = await createClient();
@@ -123,15 +95,6 @@ export async function createAgentAction(values: AgentFormValues): Promise<AgentA
     return { error: error?.message ?? "Failed to create agent." };
   }
 
-  if (values.knowledge_base_ids.length > 0) {
-    await supabase.from("agent_knowledge_bases").insert(
-      values.knowledge_base_ids.map((knowledgeBaseId) => ({
-        agent_id: agent.id,
-        knowledge_base_id: knowledgeBaseId,
-      }))
-    );
-  }
-
   revalidatePath("/agents");
   redirect(`/agents/${agent.id}`);
 }
@@ -153,11 +116,6 @@ export async function updateAgentAction(
 
   if (error || !agent) {
     return { error: error?.message ?? "Failed to update agent." };
-  }
-
-  const kbError = await syncKnowledgeBaseLinks(supabase, agentId, values.knowledge_base_ids);
-  if (kbError) {
-    return { error: `Agent saved, but knowledge base links failed to update: ${kbError}` };
   }
 
   revalidatePath("/agents");

@@ -33,6 +33,21 @@ function extensionOf(filename: string): string {
   return parts.length > 1 ? `.${parts.pop()}` : "";
 }
 
+/** Knowledge bases are managed entirely from the owning agent's page, so every mutation revalidates that agent instead of a standalone knowledge-base route (which no longer exists). */
+async function revalidateAgentsForKnowledgeBase(
+  supabase: SupabaseServerClient,
+  knowledgeBaseId: string
+): Promise<void> {
+  const { data: links } = await supabase
+    .from("agent_knowledge_bases")
+    .select("agent_id")
+    .eq("knowledge_base_id", knowledgeBaseId);
+
+  for (const link of links ?? []) {
+    revalidatePath(`/agents/${link.agent_id}`);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Knowledge bases
 // ---------------------------------------------------------------------------
@@ -44,9 +59,13 @@ export async function createKnowledgeBaseAction(
   const { workspace } = await requireCurrentWorkspace();
   const supabase = await createClient();
 
+  const agentId = String(formData.get("agent_id") ?? "");
   const name = cleanString(formData.get("name"));
   const description = cleanString(formData.get("description"));
 
+  if (!agentId) {
+    return { error: "Missing agent." };
+  }
   if (!name) {
     return { error: "Name is required." };
   }
@@ -61,13 +80,26 @@ export async function createKnowledgeBaseAction(
     return { error: error.message };
   }
 
-  revalidatePath("/knowledge-base");
+  const { error: linkError } = await supabase
+    .from("agent_knowledge_bases")
+    .insert({ agent_id: agentId, knowledge_base_id: data.id });
+
+  if (linkError) {
+    return { error: linkError.message };
+  }
+
+  revalidatePath(`/agents/${agentId}`);
   return { message: data.id };
 }
 
 export async function deleteKnowledgeBaseAction(id: string): Promise<{ error?: string }> {
   const { workspace } = await requireCurrentWorkspace();
   const supabase = await createClient();
+
+  const { data: links } = await supabase
+    .from("agent_knowledge_bases")
+    .select("agent_id")
+    .eq("knowledge_base_id", id);
 
   const { error } = await supabase
     .from("knowledge_bases")
@@ -79,7 +111,9 @@ export async function deleteKnowledgeBaseAction(id: string): Promise<{ error?: s
     return { error: error.message };
   }
 
-  revalidatePath("/knowledge-base");
+  for (const link of links ?? []) {
+    revalidatePath(`/agents/${link.agent_id}`);
+  }
   return {};
 }
 
@@ -131,7 +165,7 @@ export async function createTextDocumentAction(
       .update({ status: "error", error_message: `Failed to store content: ${uploadError.message}` })
       .eq("id", document.id)
       .eq("workspace_id", workspace.id);
-    revalidatePath(`/knowledge-base/${knowledgeBaseId}`);
+    await revalidateAgentsForKnowledgeBase(supabase, knowledgeBaseId);
     return { error: `Failed to store content: ${uploadError.message}` };
   }
 
@@ -142,7 +176,7 @@ export async function createTextDocumentAction(
     .eq("workspace_id", workspace.id);
 
   const result = await processDocumentAction(document.id);
-  revalidatePath(`/knowledge-base/${knowledgeBaseId}`);
+  await revalidateAgentsForKnowledgeBase(supabase, knowledgeBaseId);
   return result.error ? { error: result.error } : { message: "Document added." };
 }
 
@@ -188,7 +222,7 @@ export async function createUrlDocumentAction(
   }
 
   const result = await processDocumentAction(document.id);
-  revalidatePath(`/knowledge-base/${knowledgeBaseId}`);
+  await revalidateAgentsForKnowledgeBase(supabase, knowledgeBaseId);
   return result.error ? { error: result.error } : { message: "Document added." };
 }
 
@@ -247,7 +281,7 @@ export async function uploadFileDocumentAction(
       .update({ status: "error", error_message: `Failed to store file: ${uploadError.message}` })
       .eq("id", document.id)
       .eq("workspace_id", workspace.id);
-    revalidatePath(`/knowledge-base/${knowledgeBaseId}`);
+    await revalidateAgentsForKnowledgeBase(supabase, knowledgeBaseId);
     return { error: `Failed to store file: ${uploadError.message}` };
   }
 
@@ -258,7 +292,7 @@ export async function uploadFileDocumentAction(
     .eq("workspace_id", workspace.id);
 
   const result = await processDocumentAction(document.id);
-  revalidatePath(`/knowledge-base/${knowledgeBaseId}`);
+  await revalidateAgentsForKnowledgeBase(supabase, knowledgeBaseId);
   return result.error ? { error: result.error } : { message: "Document added." };
 }
 
@@ -294,7 +328,7 @@ export async function deleteDocumentAction(documentId: string): Promise<{ error?
     await supabase.storage.from(KNOWLEDGE_BASE_STORAGE_BUCKET).remove([document.storage_path]);
   }
 
-  revalidatePath(`/knowledge-base/${document.knowledge_base_id}`);
+  await revalidateAgentsForKnowledgeBase(supabase, document.knowledge_base_id);
   return {};
 }
 
@@ -392,7 +426,7 @@ export async function processDocumentAction(documentId: string): Promise<{ error
         .update({ status: "error", error_message: message })
         .eq("id", documentId)
         .eq("workspace_id", workspace.id);
-      revalidatePath(`/knowledge-base/${document.knowledge_base_id}`);
+      await revalidateAgentsForKnowledgeBase(supabase, document.knowledge_base_id);
       return { error: message };
     }
 
@@ -435,7 +469,7 @@ export async function processDocumentAction(documentId: string): Promise<{ error
       .eq("id", documentId)
       .eq("workspace_id", workspace.id);
 
-    revalidatePath(`/knowledge-base/${document.knowledge_base_id}`);
+    await revalidateAgentsForKnowledgeBase(supabase, document.knowledge_base_id);
     return {};
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to process document.";
@@ -444,7 +478,7 @@ export async function processDocumentAction(documentId: string): Promise<{ error
       .update({ status: "error", error_message: message })
       .eq("id", documentId)
       .eq("workspace_id", workspace.id);
-    revalidatePath(`/knowledge-base/${document.knowledge_base_id}`);
+    await revalidateAgentsForKnowledgeBase(supabase, document.knowledge_base_id);
     return { error: message };
   }
 }

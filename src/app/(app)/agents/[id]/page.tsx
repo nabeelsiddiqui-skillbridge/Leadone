@@ -9,12 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AgentForm } from "@/components/agents/agent-form";
+import { AgentForm, type AgentKnowledgeBase } from "@/components/agents/agent-form";
 import { AddLeadsDialog } from "@/components/campaigns/add-leads-dialog";
 import { CampaignDetailActions } from "@/components/campaigns/campaign-detail-actions";
 import { RenameCampaignDialog } from "@/components/campaigns/rename-campaign-dialog";
 import { StatCard } from "@/components/dashboard/stat-card";
-import type { AgentStatus, CampaignStatus } from "@/lib/supabase/database.types";
+import type { AgentStatus, CampaignStatus, Database } from "@/lib/supabase/database.types";
 
 export const metadata: Metadata = { title: "Edit agent" };
 
@@ -53,14 +53,9 @@ export default async function AgentDetailPage({
   const { workspace } = await requireCurrentWorkspace();
   const supabase = await createClient();
 
-  const [{ data: agent, error: agentError }, { data: knowledgeBases }, { data: linkedKnowledgeBases }, { data: campaigns }] =
+  const [{ data: agent, error: agentError }, { data: linkedKnowledgeBaseLinks }, { data: campaigns }] =
     await Promise.all([
       supabase.from("agents").select("*").eq("id", id).eq("workspace_id", workspace.id).single(),
-      supabase
-        .from("knowledge_bases")
-        .select("id, name")
-        .eq("workspace_id", workspace.id)
-        .order("name", { ascending: true }),
       supabase.from("agent_knowledge_bases").select("knowledge_base_id").eq("agent_id", id),
       supabase
         .from("campaigns")
@@ -76,6 +71,48 @@ export default async function AgentDetailPage({
   if (agentError || !agent) {
     notFound();
   }
+
+  const linkedKnowledgeBaseIds = (linkedKnowledgeBaseLinks ?? []).map((link) => link.knowledge_base_id);
+  const { data: knowledgeBases } =
+    linkedKnowledgeBaseIds.length > 0
+      ? await supabase
+          .from("knowledge_bases")
+          .select(
+            "id, name, description, created_at, documents:knowledge_documents(id, name, source_type, source_url, status, error_message, created_at, chunks:knowledge_chunks(count))"
+          )
+          .in("id", linkedKnowledgeBaseIds)
+          .order("created_at", { ascending: true })
+      : { data: [] as never[] };
+
+  const agentKnowledgeBases: AgentKnowledgeBase[] = (knowledgeBases ?? []).map((kb) => {
+    const documents = (kb.documents ?? []) as unknown as Array<{
+      id: string;
+      name: string;
+      source_type: string;
+      source_url: string | null;
+      status: Database["public"]["Tables"]["knowledge_documents"]["Row"]["status"];
+      error_message: string | null;
+      created_at: string;
+      chunks: { count: number }[] | null;
+    }>;
+    return {
+      id: kb.id,
+      name: kb.name,
+      description: kb.description,
+      documents: documents
+        .map((doc) => ({
+          id: doc.id,
+          name: doc.name,
+          source_type: doc.source_type,
+          source_url: doc.source_url,
+          status: doc.status,
+          error_message: doc.error_message,
+          chunkCount: Array.isArray(doc.chunks) ? (doc.chunks[0]?.count ?? 0) : 0,
+          createdAt: doc.created_at,
+        }))
+        .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)),
+    };
+  });
 
   const [{ count: callsMade }, { count: callsConnected }, { count: appointmentsBooked }] = await Promise.all([
     supabase.from("calls").select("id", { count: "exact", head: true }).eq("workspace_id", workspace.id).eq("agent_id", id),
@@ -114,8 +151,6 @@ export default async function AgentDetailPage({
     return (candidateContacts ?? []).filter((c) => !excluded.has(c.id)).slice(0, AVAILABLE_CONTACTS_LIMIT);
   }
 
-  const linkedIds = new Set((linkedKnowledgeBases ?? []).map((row) => row.knowledge_base_id));
-
   const defaultValues = {
     name: agent.name,
     company_name: agent.company_name ?? "",
@@ -141,7 +176,6 @@ export default async function AgentDetailPage({
     max_call_duration_seconds: agent.max_call_duration_seconds,
     silence_timeout_seconds: agent.silence_timeout_seconds,
     end_call_rules: agent.end_call_rules ?? "",
-    knowledge_base_ids: Array.from(linkedIds),
   };
 
   return (
@@ -245,7 +279,7 @@ export default async function AgentDetailPage({
           mode="edit"
           agentId={agent.id}
           defaultValues={defaultValues}
-          knowledgeBases={knowledgeBases ?? []}
+          knowledgeBases={agentKnowledgeBases}
         />
       </div>
     </div>
