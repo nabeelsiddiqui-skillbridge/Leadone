@@ -95,16 +95,26 @@ export async function forgotPasswordAction(
     return { error: error.message };
   }
 
-  return { message: "If an account exists for that email, a reset link has been sent." };
+  // The confirmation email carries a 6-digit code (not a clickable link) -
+  // email security scanners that prefetch links were silently consuming the
+  // one-time token before the user could click it, so verification happens
+  // here via the code instead. See resetPasswordAction.
+  redirect(`/reset-password?email=${encodeURIComponent(email)}`);
 }
 
 export async function resetPasswordAction(
   _prevState: AuthActionState,
   formData: FormData
 ): Promise<AuthActionState> {
+  const email = String(formData.get("email") ?? "").trim();
+  const code = String(formData.get("code") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirm_password") ?? "");
 
+  if (!email) return { error: "Email is required." };
+  if (!/^\d{6}$/.test(code)) {
+    return { error: "Enter the 6-digit code from your email." };
+  }
   if (password.length < 8) {
     return { error: "Password must be at least 8 characters." };
   }
@@ -113,10 +123,14 @@ export async function resetPasswordAction(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.updateUser({ password });
+  const { error: verifyError } = await supabase.auth.verifyOtp({ email, token: code, type: "recovery" });
+  if (verifyError) {
+    return { error: verifyError.message };
+  }
 
-  if (error) {
-    return { error: error.message };
+  const { error: updateError } = await supabase.auth.updateUser({ password });
+  if (updateError) {
+    return { error: updateError.message };
   }
 
   redirect("/dashboard");

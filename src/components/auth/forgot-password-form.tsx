@@ -19,7 +19,7 @@ export function ForgotPasswordForm() {
     <Card>
       <CardHeader>
         <CardTitle>Reset your password</CardTitle>
-        <CardDescription>We&apos;ll email you a link to reset it.</CardDescription>
+        <CardDescription>We&apos;ll email you a 6-digit code to reset it.</CardDescription>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="grid gap-4">
@@ -38,7 +38,7 @@ export function ForgotPasswordForm() {
             <Input id="email" name="email" type="email" autoComplete="email" required />
           </div>
           <Button type="submit" className="w-full" disabled={pending}>
-            {pending ? "Sending…" : "Send reset link"}
+            {pending ? "Sending…" : "Send reset code"}
           </Button>
         </form>
         <p className="mt-4 text-center text-sm text-muted-foreground">

@@ -11,14 +11,16 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const initialState: AuthActionState = {};
 
-export function ResetPasswordForm() {
+export function ResetPasswordForm({ defaultEmail = "" }: { defaultEmail?: string }) {
   const [state, formAction, pending] = useActionState(resetPasswordAction, initialState);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Set a new password</CardTitle>
-        <CardDescription>Choose a strong password for your account.</CardDescription>
+        <CardTitle>Enter your code</CardTitle>
+        <CardDescription>
+          Enter the 6-digit code we emailed you, then choose a new password.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="grid gap-4">
@@ -27,6 +29,25 @@ export function ResetPasswordForm() {
               <AlertDescription>{state.error}</AlertDescription>
             </Alert>
           )}
+          <div className="grid gap-2">
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" name="email" type="email" autoComplete="email" defaultValue={defaultEmail} required />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="code">6-digit code</Label>
+            <Input
+              id="code"
+              name="code"
+              type="text"
+              inputMode="numeric"
+              pattern="\d{6}"
+              maxLength={6}
+              autoComplete="one-time-code"
+              placeholder="123456"
+              className="tracking-[0.3em] text-center font-mono"
+              required
+            />
+          </div>
           <div className="grid gap-2">
             <Label htmlFor="password">New password</Label>
             <Input id="password" name="password" type="password" autoComplete="new-password" required minLength={8} />
