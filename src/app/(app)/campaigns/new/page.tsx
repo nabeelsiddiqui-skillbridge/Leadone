@@ -16,7 +16,7 @@ export default async function NewCampaignPage() {
     await Promise.all([
       supabase
         .from("agents")
-        .select("id, name, agent_role, voice")
+        .select("id, name, agent_role, voice, call_direction")
         .eq("workspace_id", workspace.id)
         .eq("status", "active")
         .in("call_direction", ["outbound", "both"])

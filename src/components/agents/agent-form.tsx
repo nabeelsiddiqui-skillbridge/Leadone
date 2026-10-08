@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, PhoneOutgoing, PhoneIncoming, Repeat2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -34,6 +35,7 @@ import {
 
 import { createAgentAction, updateAgentAction, type AgentFormValues } from "@/app/(app)/agents/actions";
 import { VoicePicker } from "@/components/agents/voice-picker";
+import { cn } from "@/lib/utils";
 
 const formSchema = z
   .object({
@@ -186,7 +188,83 @@ export function AgentForm({ mode, agentId, defaultValues, knowledgeBases }: Agen
             <TabsTrigger value="knowledge">Knowledge</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="basics">
+          <TabsContent value="basics" className="flex flex-col gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Call direction</CardTitle>
+                <CardDescription>What this agent is for — decide this first, it shapes where it can be used.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FormField
+                  control={form.control}
+                  name="call_direction"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <RadioGroup
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          className="grid gap-3 sm:grid-cols-3"
+                        >
+                          {(
+                            [
+                              {
+                                value: "outbound",
+                                icon: PhoneOutgoing,
+                                label: "Outbound",
+                                description: "Dials leads from a campaign.",
+                              },
+                              {
+                                value: "inbound",
+                                icon: PhoneIncoming,
+                                label: "Inbound",
+                                description: "Answers calls on an assigned number, like a receptionist.",
+                              },
+                              {
+                                value: "both",
+                                icon: Repeat2,
+                                label: "Both",
+                                description: "Usable in campaigns and assignable to a number.",
+                              },
+                            ] as const
+                          ).map((option) => (
+                            <FormLabel
+                              key={option.value}
+                              htmlFor={`call-direction-${option.value}`}
+                              className="cursor-pointer font-normal"
+                            >
+                              <Card
+                                className={cn(
+                                  "gap-2 py-4 transition-colors",
+                                  field.value === option.value && "border-primary ring-1 ring-primary"
+                                )}
+                              >
+                                <CardContent className="flex items-start gap-3 px-4">
+                                  <RadioGroupItem
+                                    value={option.value}
+                                    id={`call-direction-${option.value}`}
+                                    className="mt-1"
+                                  />
+                                  <div className="min-w-0">
+                                    <p className="flex items-center gap-1.5 font-medium">
+                                      <option.icon className="size-4 text-muted-foreground" />
+                                      {option.label}
+                                    </p>
+                                    <p className="mt-1 text-sm text-muted-foreground">{option.description}</p>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </FormLabel>
+                          ))}
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle>Basics</CardTitle>
@@ -228,32 +306,6 @@ export function AgentForm({ mode, agentId, defaultValues, knowledgeBases }: Agen
                       <FormControl>
                         <Input placeholder="e.g. Sales development rep" {...field} />
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="call_direction"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Call direction</FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="outbound">Outbound — used in campaigns</SelectItem>
-                          <SelectItem value="inbound">Inbound — answers calls on a number</SelectItem>
-                          <SelectItem value="both">Both</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        Outbound agents can be assigned to campaigns. Inbound agents can be assigned to a phone
-                        number on the Phone Numbers page to answer calls, like a receptionist.
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

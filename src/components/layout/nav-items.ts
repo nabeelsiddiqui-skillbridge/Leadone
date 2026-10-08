@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
   Bot,
+  Megaphone,
   Users,
   PhoneCall,
   CalendarClock,
@@ -27,6 +28,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Discover", href: "/discover", icon: Radar },
   { label: "Agents", href: "/agents", icon: Bot },
+  { label: "Campaigns", href: "/campaigns", icon: Megaphone },
   { label: "Leads", href: "/contacts", icon: Users },
   { label: "Calls", href: "/calls", icon: PhoneCall },
   { label: "Appointments", href: "/appointments", icon: CalendarClock },

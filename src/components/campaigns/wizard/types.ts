@@ -3,6 +3,7 @@ export interface AgentOption {
   name: string;
   agent_role: string | null;
   voice: string;
+  call_direction: "outbound" | "inbound" | "both";
 }
 
 export interface PhoneNumberOption {

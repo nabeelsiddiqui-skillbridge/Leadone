@@ -4,7 +4,7 @@ import { ArrowLeft, Sparkles } from "lucide-react";
 
 import { AGENT_TEMPLATES } from "@/lib/agent-templates";
 import { TemplateCard } from "@/components/agents/template-card";
-import { Button } from "@/components/ui/button";
+import { CreateCustomAgentCard } from "@/components/agents/create-custom-agent-card";
 
 export const metadata: Metadata = { title: "Pre-built AI Agents" };
 
@@ -32,15 +32,7 @@ export default function AgentTemplatesPage() {
         {AGENT_TEMPLATES.map((template) => (
           <TemplateCard key={template.slug} templateSlug={template.slug} />
         ))}
-      </div>
-
-      <div className="rounded-xl border border-dashed p-5 text-center">
-        <p className="text-sm text-muted-foreground">
-          Want full control over every field instead?{" "}
-          <Button asChild variant="link" className="h-auto p-0 text-sm">
-            <Link href="/agents/new">Build an agent from scratch</Link>
-          </Button>
-        </p>
+        <CreateCustomAgentCard />
       </div>
     </div>
   );
