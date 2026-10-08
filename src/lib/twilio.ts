@@ -72,11 +72,23 @@ export function verifyTwilioSignature(
   return twilioLib.validateRequest(authToken, signature, fullUrl, params);
 }
 
+/**
+ * Parses a Twilio webhook's form-encoded body. Twilio always sends valid
+ * form data, but this is a public, unauthenticated-until-signature-checked
+ * endpoint — anyone can POST a malformed body, and `request.formData()`
+ * throws on one (e.g. a bad multipart boundary). Returning {} instead of
+ * throwing lets callers fall through to their normal "missing required
+ * field" 400, rather than an uncaught 500.
+ */
 export async function parseTwilioForm(request: Request): Promise<Record<string, string>> {
-  const formData = await request.formData();
-  const params: Record<string, string> = {};
-  formData.forEach((value, key) => {
-    params[key] = String(value);
-  });
-  return params;
+  try {
+    const formData = await request.formData();
+    const params: Record<string, string> = {};
+    formData.forEach((value, key) => {
+      params[key] = String(value);
+    });
+    return params;
+  } catch {
+    return {};
+  }
 }

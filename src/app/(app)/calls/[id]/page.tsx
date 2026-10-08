@@ -32,7 +32,7 @@ export default async function CallDetailPage({ params }: { params: Promise<{ id:
   const { workspace } = await requireCurrentWorkspace();
   const supabase = await createClient();
 
-  const { data: call } = await supabase
+  const { data: call, error: callError } = await supabase
     .from("calls")
     .select(
       "*, contact:contacts(id,first_name,last_name,company,phone,email), campaign:campaigns(id,name), agent:agents(id,name), phone_number:phone_numbers(phone_number)"
@@ -41,6 +41,7 @@ export default async function CallDetailPage({ params }: { params: Promise<{ id:
     .eq("workspace_id", workspace.id)
     .maybeSingle();
 
+  if (callError) throw new Error(`Failed to load call: ${callError.message}`);
   if (!call) notFound();
 
   const [{ data: transcript }, { data: toolCalls }, { data: turns }, { data: appointment }, { data: recording }] =

@@ -38,13 +38,14 @@ export default async function CampaignDetailPage({
   const { workspace } = await requireCurrentWorkspace();
   const supabase = await createClient();
 
-  const { data: campaign } = await supabase
+  const { data: campaign, error: campaignError } = await supabase
     .from("campaigns")
     .select("*, agent:agents(id, name), phone_number:phone_numbers(id, phone_number)")
     .eq("id", id)
     .eq("workspace_id", workspace.id)
-    .single();
+    .maybeSingle();
 
+  if (campaignError) throw new Error(`Failed to load campaign: ${campaignError.message}`);
   if (!campaign) notFound();
 
   const agent = campaign.agent as unknown as { id: string; name: string } | null;

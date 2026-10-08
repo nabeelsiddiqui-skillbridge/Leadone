@@ -65,7 +65,7 @@ export default async function LiveChatPage() {
         <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
           <ul className="divide-y">
             {conversations.map((c) => {
-              const meta = STATUS_META[c.status];
+              const meta = STATUS_META[c.status] ?? STATUS_META.closed;
               const Icon = meta.icon;
               const preview = lastMessageByConversation.get(c.id);
               const widget = c.widget as unknown as { name: string } | null;

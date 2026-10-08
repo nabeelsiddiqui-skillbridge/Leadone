@@ -24,9 +24,13 @@ export default async function CustomPlanPage({ params }: { params: Promise<{ tok
   const { workspace } = await requireCurrentWorkspace();
   const supabase = await createClient();
 
-  const { data: customPlan } = await supabase.from("custom_plans").select("*").eq("token", token).single();
+  const { data: customPlan, error: customPlanError } = await supabase
+    .from("custom_plans")
+    .select("*")
+    .eq("token", token)
+    .maybeSingle();
 
-  if (!customPlan) notFound();
+  if (customPlanError || !customPlan) notFound();
 
   if (customPlan.workspace_id !== workspace.id) {
     return (
@@ -56,7 +60,7 @@ export default async function CustomPlanPage({ params }: { params: Promise<{ tok
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
           <p className="text-3xl font-semibold tabular-nums">
-            ${(customPlan.price_cents / 100).toLocaleString()}
+            ${((customPlan.price_cents ?? 0) / 100).toLocaleString()}
             <span className="text-base font-normal text-muted-foreground"> /month</span>
           </p>
 
@@ -64,7 +68,7 @@ export default async function CustomPlanPage({ params }: { params: Promise<{ tok
             {LIMIT_ROWS.map((row) => (
               <li key={row.key} className="flex items-center justify-between rounded-md border px-3 py-2">
                 <span className="text-muted-foreground">{row.label}</span>
-                <span className="font-medium tabular-nums">{customPlan[row.key].toLocaleString()}</span>
+                <span className="font-medium tabular-nums">{(customPlan[row.key] ?? 0).toLocaleString()}</span>
               </li>
             ))}
           </ul>

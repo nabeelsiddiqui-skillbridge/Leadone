@@ -15,13 +15,14 @@ export default async function SupportTicketPage({ params }: { params: Promise<{ 
   const { workspace } = await requireCurrentWorkspace();
   const supabase = await createClient();
 
-  const { data: ticket } = await supabase
+  const { data: ticket, error: ticketError } = await supabase
     .from("support_tickets")
     .select("id, subject, status, priority, created_at")
     .eq("id", id)
     .eq("workspace_id", workspace.id)
-    .single();
+    .maybeSingle();
 
+  if (ticketError) throw new Error(`Failed to load ticket: ${ticketError.message}`);
   if (!ticket) notFound();
 
   const { data: messages } = await supabase
