@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, PhoneCall, Plus, PartyPopper, Users, CalendarClock, TrendingUp } from "lucide-react";
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { AppShell } from "@/components/layout/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,6 +75,17 @@ export default async function DebugAgentRenderPage({
 
   const { data: workspace } = await supabase.from("workspaces").select("*").eq("id", workspaceId).single();
   if (!workspace) return <div>workspace not found</div>;
+
+  const { data: ownerMembership } = await supabase
+    .from("workspace_members")
+    .select("user_id")
+    .eq("workspace_id", workspace.id)
+    .order("joined_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  const { data: profile } = ownerMembership
+    ? await supabase.from("profiles").select("*").eq("id", ownerMembership.user_id).maybeSingle()
+    : { data: null };
 
   const [{ data: agent, error: agentError }, { data: linkedKnowledgeBaseLinks }, { data: campaigns }] =
     await withRetry(() =>
@@ -214,6 +226,12 @@ export default async function DebugAgentRenderPage({
   };
 
   return (
+    <AppShell
+      workspaceName={workspace.name}
+      fullName={profile?.full_name ?? null}
+      email=""
+      isSuperAdmin={profile?.platform_role === "super_admin"}
+    >
     <div className="flex flex-col gap-6">
       <div>
         <Link href="/agents" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
@@ -304,5 +322,6 @@ export default async function DebugAgentRenderPage({
         <AgentForm mode="edit" agentId={agent.id} defaultValues={defaultValues} knowledgeBases={agentKnowledgeBases} />
       </div>
     </div>
+    </AppShell>
   );
 }
