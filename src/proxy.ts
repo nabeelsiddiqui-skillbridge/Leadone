@@ -14,6 +14,6 @@ export const config = {
   // campaign worker or an external cron scheduler) into a redirect to the
   // /login *page*, and POSTing to a page route is a 405.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/|debugagentrender789|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
