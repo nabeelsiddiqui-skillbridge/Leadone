@@ -31,6 +31,29 @@ function toStringArray(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === "string");
 }
 
+/**
+ * This page makes several round trips to Supabase. A single transient
+ * network/connection blip (most likely right after a cold start) in any one
+ * of them used to take down the whole page with an uncaught exception.
+ * Retrying once with a short backoff absorbs that without masking a real,
+ * persistent failure — it still throws (into error.tsx) after both attempts
+ * fail.
+ */
+async function withRetry<T>(fn: () => Promise<T>, attempts = 2): Promise<T> {
+  let lastError: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      if (i < attempts - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 150 * (i + 1)));
+      }
+    }
+  }
+  throw lastError;
+}
+
 const CAMPAIGN_STATUS_VARIANT: Record<CampaignStatus, "success" | "secondary" | "outline" | "destructive"> = {
   draft: "outline",
   scheduled: "secondary",
@@ -54,17 +77,19 @@ export default async function AgentDetailPage({
   const supabase = await createClient();
 
   const [{ data: agent, error: agentError }, { data: linkedKnowledgeBaseLinks }, { data: campaigns }] =
-    await Promise.all([
-      supabase.from("agents").select("*").eq("id", id).eq("workspace_id", workspace.id).single(),
-      supabase.from("agent_knowledge_bases").select("knowledge_base_id").eq("agent_id", id),
-      supabase
-        .from("campaigns")
-        .select("id, name, status, created_at, contacts:campaign_contacts(count)")
-        .eq("workspace_id", workspace.id)
-        .eq("agent_id", id)
-        .order("created_at", { ascending: false })
-        .limit(5),
-    ]);
+    await withRetry(() =>
+      Promise.all([
+        supabase.from("agents").select("*").eq("id", id).eq("workspace_id", workspace.id).single(),
+        supabase.from("agent_knowledge_bases").select("knowledge_base_id").eq("agent_id", id),
+        supabase
+          .from("campaigns")
+          .select("id, name, status, created_at, contacts:campaign_contacts(count)")
+          .eq("workspace_id", workspace.id)
+          .eq("agent_id", id)
+          .order("created_at", { ascending: false })
+          .limit(5),
+      ])
+    );
 
   // RLS already keeps this to the caller's workspace; a failed fetch here
   // means the agent doesn't exist or isn't in this workspace — either way, 404.
@@ -125,30 +150,34 @@ export default async function AgentDetailPage({
     agentKnowledgeBases = [];
   }
 
-  const [{ count: callsMade }, { count: callsConnected }, { count: appointmentsBooked }] = await Promise.all([
-    supabase.from("calls").select("id", { count: "exact", head: true }).eq("workspace_id", workspace.id).eq("agent_id", id),
-    supabase
-      .from("calls")
-      .select("id", { count: "exact", head: true })
-      .eq("workspace_id", workspace.id)
-      .eq("agent_id", id)
-      .eq("status", "completed"),
-    supabase.from("appointments").select("id", { count: "exact", head: true }).eq("workspace_id", workspace.id).eq("agent_id", id),
-  ]);
+  const [{ count: callsMade }, { count: callsConnected }, { count: appointmentsBooked }] = await withRetry(() =>
+    Promise.all([
+      supabase.from("calls").select("id", { count: "exact", head: true }).eq("workspace_id", workspace.id).eq("agent_id", id),
+      supabase
+        .from("calls")
+        .select("id", { count: "exact", head: true })
+        .eq("workspace_id", workspace.id)
+        .eq("agent_id", id)
+        .eq("status", "completed"),
+      supabase.from("appointments").select("id", { count: "exact", head: true }).eq("workspace_id", workspace.id).eq("agent_id", id),
+    ])
+  );
   const conversionRate = callsMade && callsMade > 0 ? `${(((appointmentsBooked ?? 0) / callsMade) * 100).toFixed(1)}%` : "—";
 
   const campaignIds = (campaigns ?? []).map((c) => c.id);
-  const [{ data: existingLinks }, { data: candidateContacts }] = await Promise.all([
-    campaignIds.length > 0
-      ? supabase.from("campaign_contacts").select("campaign_id, contact_id").in("campaign_id", campaignIds)
-      : Promise.resolve({ data: [] as { campaign_id: string; contact_id: string }[] }),
-    supabase
-      .from("contacts")
-      .select("id, first_name, last_name, company, phone, email")
-      .eq("workspace_id", workspace.id)
-      .order("created_at", { ascending: false })
-      .limit(500),
-  ]);
+  const [{ data: existingLinks }, { data: candidateContacts }] = await withRetry(() =>
+    Promise.all([
+      campaignIds.length > 0
+        ? supabase.from("campaign_contacts").select("campaign_id, contact_id").in("campaign_id", campaignIds)
+        : Promise.resolve({ data: [] as { campaign_id: string; contact_id: string }[] }),
+      supabase
+        .from("contacts")
+        .select("id, first_name, last_name, company, phone, email")
+        .eq("workspace_id", workspace.id)
+        .order("created_at", { ascending: false })
+        .limit(500),
+    ])
+  );
 
   const linksByCampaign = new Map<string, Set<string>>();
   for (const link of existingLinks ?? []) {
