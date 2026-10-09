@@ -42,7 +42,10 @@
   iframe.style.border = "none";
   iframe.style.background = "transparent";
   iframe.style.colorScheme = "normal";
-  iframe.setAttribute("allow", "clipboard-write");
+  // "microphone" is required for voice chat: without it, the browser
+  // blocks getUserMedia() inside the iframe before the visitor is ever
+  // even asked for mic permission - it just fails silently/immediately.
+  iframe.setAttribute("allow", "clipboard-write; microphone");
 
   container.appendChild(iframe);
 
