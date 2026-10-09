@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, unstable_rethrow } from "next/navigation";
 import { ArrowLeft, PhoneCall, Plus, PartyPopper, Users, CalendarClock, TrendingUp } from "lucide-react";
 
 import { requireCurrentWorkspace } from "@/lib/auth";
@@ -64,7 +64,40 @@ const CAMPAIGN_STATUS_VARIANT: Record<CampaignStatus, "success" | "secondary" | 
   error: "destructive",
 };
 
+function serializeDiagError(err: unknown) {
+  if (err instanceof Error) {
+    return { name: err.name, message: err.message, stack: err.stack, cause: err.cause ? String(err.cause) : undefined };
+  }
+  return { raw: String(err) };
+}
+
 export default async function AgentDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ activated?: string }>;
+}) {
+  try {
+    return await AgentDetailPageInner({ params, searchParams });
+  } catch (err) {
+    // redirect()/notFound() work by throwing - let those through untouched,
+    // only intercept real errors.
+    unstable_rethrow(err);
+    // TEMPORARY: surface the real error instead of letting Next.js's
+    // production scrubbing replace it with a bare digest we have no way to
+    // look up (Vercel runtime log access is unavailable in this session).
+    // Remove once the root cause behind the "Start calling" crash is fixed.
+    console.error("AgentDetailPage threw", err);
+    return (
+      <pre className="whitespace-pre-wrap break-all rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-xs text-destructive">
+        {JSON.stringify(serializeDiagError(err), null, 2)}
+      </pre>
+    );
+  }
+}
+
+async function AgentDetailPageInner({
   params,
   searchParams,
 }: {
