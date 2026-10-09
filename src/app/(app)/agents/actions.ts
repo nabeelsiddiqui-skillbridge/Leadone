@@ -316,7 +316,7 @@ export async function activateAgentTemplateAction(input: ActivateTemplateInput):
       .eq("status", "active")
       .maybeSingle();
 
-    await supabase.from("campaigns").insert({
+    const { error: campaignError } = await supabase.from("campaigns").insert({
       workspace_id: workspace.id,
       agent_id: agent.id,
       phone_number_id: defaultNumber?.id ?? null,
@@ -335,6 +335,11 @@ export async function activateAgentTemplateAction(input: ActivateTemplateInput):
       voicemail_action: "leave_message",
       created_by: user?.id ?? null,
     });
+    if (campaignError) {
+      // The agent itself was created fine - don't fail the whole flow over
+      // its companion calling list, but don't pretend it worked either.
+      console.error(`Failed to create companion campaign for agent ${agent.id}:`, campaignError.message);
+    }
   }
 
   revalidatePath("/agents");
