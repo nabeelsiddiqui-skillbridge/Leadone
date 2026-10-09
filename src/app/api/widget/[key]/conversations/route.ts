@@ -39,7 +39,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ key
   if (!widget) {
     return NextResponse.json({ error: "Widget not found." }, { status: 404 });
   }
-  if (!widget.mode || (widget.mode !== "chat" && widget.mode !== "both")) {
+  if (!widget.chat_enabled) {
     return NextResponse.json({ error: "Chat isn't enabled for this widget." }, { status: 422 });
   }
 

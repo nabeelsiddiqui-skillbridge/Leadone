@@ -48,10 +48,10 @@ export function EditWidgetForm({
         defaults={{
           name: widget.name,
           agentId: widget.agent_id,
-          mode: widget.mode,
           size: widget.size,
           primaryColor: widget.primary_color,
           greetingMessage: widget.greeting_message,
+          chatEnabled: widget.chat_enabled,
           voiceChatEnabled: widget.voice_chat_enabled,
         }}
       />

@@ -56,7 +56,7 @@ export function NewWidgetDialog({ agents }: { agents: { id: string; name: string
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>New chat & call widget</DialogTitle>
+          <DialogTitle>New chat & voice widget</DialogTitle>
           <DialogDescription>Configure it now, customize the look, then embed it anywhere.</DialogDescription>
         </DialogHeader>
         <form ref={formRef} action={handleSubmit} className="grid gap-4">

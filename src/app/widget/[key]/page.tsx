@@ -16,10 +16,10 @@ export default async function WidgetPage({ params }: { params: Promise<{ key: st
       <WidgetChat
         widgetKey={key}
         name={widget.name}
-        mode={widget.mode}
         primaryColor={widget.primary_color}
         size={widget.size}
         greetingMessage={widget.greeting_message}
+        chatEnabled={widget.chat_enabled}
         voiceChatEnabled={widget.voice_chat_enabled}
       />
     </div>

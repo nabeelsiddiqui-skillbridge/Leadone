@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { MessageCircle, Phone, Mic, Send, X, Loader2, CheckCircle2 } from "lucide-react";
+import { MessageCircle, Mic, Send, X, Loader2 } from "lucide-react";
 
-import type { WidgetMode, WidgetSize } from "@/lib/supabase/database.types";
+import type { WidgetSize } from "@/lib/supabase/database.types";
 import { cn } from "@/lib/utils";
 import { VoiceChatPanel } from "@/components/widget/voice-chat-panel";
 
@@ -35,11 +35,11 @@ interface WidgetMessage {
 interface WidgetChatProps {
   widgetKey: string;
   name: string;
-  mode: WidgetMode;
   primaryColor: string;
   size: WidgetSize;
   greetingMessage: string;
-  voiceChatEnabled?: boolean;
+  chatEnabled: boolean;
+  voiceChatEnabled: boolean;
 }
 
 const SIZE_DIMENSIONS: Record<WidgetSize, { width: string; height: string }> = {
@@ -75,32 +75,24 @@ function mergeMessages(existing: WidgetMessage[], incoming: WidgetMessage[]): Wi
 export function WidgetChat({
   widgetKey,
   name,
-  mode,
   primaryColor,
   size,
   greetingMessage,
-  voiceChatEnabled = false,
+  chatEnabled,
+  voiceChatEnabled,
 }: WidgetChatProps) {
   const [open, setOpen] = useState(false);
-  const chatEnabled = mode === "chat" || mode === "both";
-  const callEnabled = mode === "call" || mode === "both";
-  const [tab, setTab] = useState<"chat" | "call" | "voice">(
-    chatEnabled ? "chat" : voiceChatEnabled ? "voice" : "call"
-  );
+  const [tab, setTab] = useState<"chat" | "voice">(chatEnabled ? "chat" : "voice");
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<WidgetMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
-  const [callPhone, setCallPhone] = useState("");
-  const [callName, setCallName] = useState("");
-  const [callState, setCallState] = useState<"idle" | "submitting" | "success" | "error">("idle");
-  const [callError, setCallError] = useState<string | null>(null);
 
   const visitorIdRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const dimensions = SIZE_DIMENSIONS[size] ?? SIZE_DIMENSIONS.standard;
 
-  const startingConversation = open && chatEnabled && !conversationId;
+  const startingConversation = open && chatEnabled && tab === "chat" && !conversationId;
 
   useEffect(() => {
     if (!startingConversation) return;
@@ -190,36 +182,9 @@ export function WidgetChat({
     }
   }
 
-  async function handleCallRequest(event: FormEvent) {
-    event.preventDefault();
-    setCallState("submitting");
-    setCallError(null);
-    try {
-      const res = await fetch(`/api/widget/${widgetKey}/call-request`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: callPhone.trim(), name: callName.trim() || undefined }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setCallState("error");
-        setCallError(data.error ?? "Something went wrong. Please try again.");
-        return;
-      }
-      setCallState("success");
-    } catch {
-      setCallState("error");
-      setCallError("Something went wrong. Please try again.");
-    }
-  }
-
   if (!open) {
-    const bubbleLabel = chatEnabled
-      ? `Chat with ${name}`
-      : voiceChatEnabled
-        ? `Talk to ${name}`
-        : `Call ${name}`;
-    const BubbleIcon = chatEnabled ? MessageCircle : voiceChatEnabled ? Mic : Phone;
+    const bubbleLabel = chatEnabled ? `Chat with ${name}` : `Talk to ${name}`;
+    const BubbleIcon = chatEnabled ? MessageCircle : Mic;
     return (
       <div className="relative flex h-14 w-14 items-center justify-center">
         <span
@@ -234,12 +199,12 @@ export function WidgetChat({
           style={gradientStyle(primaryColor)}
         >
           <BubbleIcon className="h-6 w-6" />
-          {mode === "both" && (
+          {chatEnabled && voiceChatEnabled && (
             <span
               className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-sm ring-2 ring-white"
               style={{ color: primaryColor }}
             >
-              <Phone className="h-2.5 w-2.5" strokeWidth={2.5} />
+              <Mic className="h-2.5 w-2.5" strokeWidth={2.5} />
             </span>
           )}
         </button>
@@ -273,38 +238,36 @@ export function WidgetChat({
         </button>
       </div>
 
-      {(() => {
-        const tabs: { key: "chat" | "voice" | "call"; label: string }[] = [
-          ...(chatEnabled ? [{ key: "chat" as const, label: "Chat" }] : []),
-          ...(voiceChatEnabled ? [{ key: "voice" as const, label: "Voice" }] : []),
-          ...(callEnabled ? [{ key: "call" as const, label: "Request a call" }] : []),
-        ];
-        if (tabs.length < 2) return null;
-        return (
-          <div className="flex border-b border-gray-100 bg-gray-50 text-sm">
-            {tabs.map((t) => (
-              <button
-                key={t.key}
-                type="button"
-                onClick={() => setTab(t.key)}
-                className={cn(
-                  "flex-1 py-2 font-medium transition-colors",
-                  tab === t.key ? "border-b-2 text-gray-900" : "text-gray-400 hover:text-gray-600"
-                )}
-                style={tab === t.key ? { borderColor: primaryColor } : undefined}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        );
-      })()}
-
-      {tab === "voice" && voiceChatEnabled && (
-        <VoiceChatPanel widgetKey={widgetKey} name={name} primaryColor={primaryColor} active={open && tab === "voice"} />
+      {chatEnabled && voiceChatEnabled && (
+        <div className="flex border-b border-gray-100 bg-gray-50 text-sm">
+          <button
+            type="button"
+            onClick={() => setTab("chat")}
+            className={cn(
+              "flex-1 py-2 font-medium transition-colors",
+              tab === "chat" ? "border-b-2 text-gray-900" : "text-gray-400 hover:text-gray-600"
+            )}
+            style={tab === "chat" ? { borderColor: primaryColor } : undefined}
+          >
+            Chat
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("voice")}
+            className={cn(
+              "flex-1 py-2 font-medium transition-colors",
+              tab === "voice" ? "border-b-2 text-gray-900" : "text-gray-400 hover:text-gray-600"
+            )}
+            style={tab === "voice" ? { borderColor: primaryColor } : undefined}
+          >
+            Voice
+          </button>
+        </div>
       )}
 
-      {tab === "chat" && chatEnabled ? (
+      {tab === "voice" && voiceChatEnabled ? (
+        <VoiceChatPanel widgetKey={widgetKey} name={name} primaryColor={primaryColor} active={open && tab === "voice"} />
+      ) : tab === "chat" && chatEnabled ? (
         <>
           <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto bg-gray-50 px-4 py-4">
             {startingConversation && messages.length === 0 ? (
@@ -357,48 +320,6 @@ export function WidgetChat({
             </button>
           </form>
         </>
-      ) : tab === "call" && callEnabled ? (
-        <div className="flex flex-1 flex-col justify-center gap-4 bg-gray-50 px-5 py-6">
-          {callState === "success" ? (
-            <div className="flex flex-col items-center gap-2 text-center">
-              <CheckCircle2 className="h-9 w-9" style={{ color: primaryColor }} />
-              <p className="text-sm font-medium text-gray-900">We&apos;re calling you now</p>
-              <p className="text-xs text-gray-500">Keep an eye on your phone — it&apos;ll ring in just a moment.</p>
-            </div>
-          ) : (
-            <form onSubmit={handleCallRequest} className="flex flex-col gap-3">
-              <div className="flex flex-col items-center gap-2 pb-1 text-center">
-                <Phone className="h-7 w-7" style={{ color: primaryColor }} />
-                <p className="text-sm font-medium text-gray-900">Talk to us right now</p>
-                <p className="text-xs text-gray-500">Leave your number and we&apos;ll call you immediately.</p>
-              </div>
-              <input
-                value={callName}
-                onChange={(e) => setCallName(e.target.value)}
-                placeholder="Your name (optional)"
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-300"
-              />
-              <input
-                value={callPhone}
-                onChange={(e) => setCallPhone(e.target.value)}
-                placeholder="+1 555 123 4567"
-                type="tel"
-                required
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-300"
-              />
-              {callError && <p className="text-xs text-red-500">{callError}</p>}
-              <button
-                type="submit"
-                disabled={callState === "submitting" || !callPhone.trim()}
-                className="flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium text-white shadow-sm transition-transform disabled:opacity-50 disabled:hover:scale-100 hover:scale-[1.02]"
-                style={gradientStyle(primaryColor)}
-              >
-                {callState === "submitting" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Phone className="h-4 w-4" />}
-                Call me now
-              </button>
-            </form>
-          )}
-        </div>
       ) : null}
 
       <div className="border-t border-gray-100 bg-white px-4 py-1.5 text-center text-[10px] text-gray-300">

@@ -22,12 +22,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ key:
   return NextResponse.json({
     id: widget.id,
     name: widget.name,
-    mode: widget.mode,
     primaryColor: widget.primary_color,
     size: widget.size,
     greetingMessage: widget.greeting_message,
-    callEnabled: widget.mode === "call" || widget.mode === "both",
-    chatEnabled: widget.mode === "chat" || widget.mode === "both",
+    chatEnabled: widget.chat_enabled,
     voiceChatEnabled: widget.voice_chat_enabled,
   });
 }

@@ -4,14 +4,13 @@ import { revalidatePath } from "next/cache";
 
 import { requireCurrentWorkspace } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { WidgetMode, WidgetSize } from "@/lib/supabase/database.types";
+import type { WidgetSize } from "@/lib/supabase/database.types";
 
 export interface ActionState {
   error?: string;
   message?: string;
 }
 
-const MODES: WidgetMode[] = ["chat", "call", "both"];
 const SIZES: WidgetSize[] = ["compact", "standard", "large"];
 const HEX_COLOR_RE = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
@@ -22,36 +21,36 @@ function cleanString(value: FormDataEntryValue | null): string | null {
 
 interface WidgetFormValues {
   name: string;
-  mode: WidgetMode;
   size: WidgetSize;
   primary_color: string;
   greeting_message: string;
   agent_id: string | null;
+  chat_enabled: boolean;
   voice_chat_enabled: boolean;
 }
 
 function widgetFieldsFromForm(formData: FormData): { error?: string; fields?: WidgetFormValues } {
   const name = cleanString(formData.get("name"));
-  const mode = String(formData.get("mode") ?? "");
   const size = String(formData.get("size") ?? "");
   const primaryColor = String(formData.get("primary_color") ?? "").trim();
   const greetingMessage = cleanString(formData.get("greeting_message"));
   const agentId = cleanString(formData.get("agent_id"));
+  const chatEnabled = String(formData.get("chat_enabled") ?? "off") === "on";
   const voiceChatEnabled = String(formData.get("voice_chat_enabled") ?? "off") === "on";
 
   if (!name) return { error: "Name is required." };
-  if (!MODES.includes(mode as WidgetMode)) return { error: "Choose a valid mode." };
   if (!SIZES.includes(size as WidgetSize)) return { error: "Choose a valid size." };
   if (!HEX_COLOR_RE.test(primaryColor)) return { error: "Enter a valid hex color, e.g. #1B4D3E." };
+  if (!chatEnabled && !voiceChatEnabled) return { error: "Turn on at least chat or voice chat." };
 
   return {
     fields: {
       name,
-      mode: mode as WidgetMode,
       size: size as WidgetSize,
       primary_color: primaryColor,
       greeting_message: greetingMessage ?? "Hi! How can we help you today?",
       agent_id: agentId,
+      chat_enabled: chatEnabled,
       voice_chat_enabled: voiceChatEnabled,
     },
   };

@@ -866,6 +866,7 @@ export interface Database {
           size: WidgetSize;
           greeting_message: string;
           status: WidgetStatus;
+          chat_enabled: boolean;
           voice_chat_enabled: boolean;
           created_at: string;
           updated_at: string;

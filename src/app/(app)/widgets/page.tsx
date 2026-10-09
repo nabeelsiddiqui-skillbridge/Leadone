@@ -9,11 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { NewWidgetDialog } from "@/components/widgets/new-widget-dialog";
 import { WidgetRowActions } from "@/components/widgets/widget-row-actions";
-import type { WidgetMode, WidgetStatus } from "@/lib/supabase/database.types";
+import type { WidgetStatus } from "@/lib/supabase/database.types";
 
-export const metadata: Metadata = { title: "Chat & Call Widgets" };
+export const metadata: Metadata = { title: "Chat & Voice Widgets" };
 
-const MODE_LABEL: Record<WidgetMode, string> = { chat: "Chat only", call: "Call only", both: "Chat & Call" };
 const STATUS_VARIANT: Record<WidgetStatus, "success" | "secondary"> = { active: "success", inactive: "secondary" };
 
 export default async function WidgetsPage() {
@@ -32,8 +31,8 @@ export default async function WidgetsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Chat & Call Widgets"
-        description="Embed an AI-powered chat and call bubble on your website or app. Hand off to a teammate any time — visitors never see the difference."
+        title="Chat & Voice Widgets"
+        description="Embed an AI-powered text chat and live voice bubble on your website or app. Hand off to a teammate any time — visitors never see the difference."
         action={<NewWidgetDialog agents={agents ?? []} />}
       />
 
@@ -49,7 +48,7 @@ export default async function WidgetsPage() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Agent</TableHead>
-                <TableHead>Mode</TableHead>
+                <TableHead>Capabilities</TableHead>
                 <TableHead>Conversations</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-10" />
@@ -73,7 +72,13 @@ export default async function WidgetsPage() {
                       </Link>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{agent?.name ?? "—"}</TableCell>
-                    <TableCell>{MODE_LABEL[w.mode]}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1.5">
+                        {w.chat_enabled && <Badge variant="outline">Chat</Badge>}
+                        {w.voice_chat_enabled && <Badge variant="outline">Voice</Badge>}
+                        {!w.chat_enabled && !w.voice_chat_enabled && <span className="text-muted-foreground">—</span>}
+                      </div>
+                    </TableCell>
                     <TableCell className="tabular-nums">{conversationCount}</TableCell>
                     <TableCell>
                       <Badge variant={STATUS_VARIANT[w.status]}>{w.status === "active" ? "Active" : "Inactive"}</Badge>

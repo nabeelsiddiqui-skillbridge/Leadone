@@ -7,17 +7,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import type { WidgetMode, WidgetSize } from "@/lib/supabase/database.types";
+import type { WidgetSize } from "@/lib/supabase/database.types";
 
 const COLOR_PRESETS = ["#1B4D3E", "#2563EB", "#7C3AED", "#DC2626", "#0891B2", "#111827"];
 
 export interface WidgetFormDefaults {
   name?: string;
   agentId?: string | null;
-  mode?: WidgetMode;
   size?: WidgetSize;
   primaryColor?: string;
   greetingMessage?: string;
+  chatEnabled?: boolean;
   voiceChatEnabled?: boolean;
 }
 
@@ -29,6 +29,7 @@ export function WidgetFormFields({
   defaults?: WidgetFormDefaults;
 }) {
   const [color, setColor] = useState(defaults?.primaryColor ?? "#1B4D3E");
+  const [chatEnabled, setChatEnabled] = useState(defaults?.chatEnabled ?? true);
   const [voiceChatEnabled, setVoiceChatEnabled] = useState(defaults?.voiceChatEnabled ?? false);
 
   return (
@@ -52,38 +53,21 @@ export function WidgetFormFields({
             ))}
           </SelectContent>
         </Select>
-        <p className="text-xs text-muted-foreground">
-          Powers the AI replies and, for call-enabled widgets, places the outbound call.
-        </p>
+        <p className="text-xs text-muted-foreground">Powers both the text replies and the live voice conversation.</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="widget-mode">Mode</Label>
-          <Select name="mode" defaultValue={defaults?.mode ?? "chat"}>
-            <SelectTrigger id="widget-mode" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="chat">Chat only</SelectItem>
-              <SelectItem value="call">Call only</SelectItem>
-              <SelectItem value="both">Chat & Call</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="widget-size">Size</Label>
-          <Select name="size" defaultValue={defaults?.size ?? "standard"}>
-            <SelectTrigger id="widget-size" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="compact">Compact</SelectItem>
-              <SelectItem value="standard">Standard</SelectItem>
-              <SelectItem value="large">Large</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="grid gap-2">
+        <Label htmlFor="widget-size">Size</Label>
+        <Select name="size" defaultValue={defaults?.size ?? "standard"}>
+          <SelectTrigger id="widget-size" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="compact">Compact</SelectItem>
+            <SelectItem value="standard">Standard</SelectItem>
+            <SelectItem value="large">Large</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid gap-2">
@@ -129,15 +113,29 @@ export function WidgetFormFields({
         />
       </div>
 
-      <div className="flex flex-row items-center justify-between rounded-lg border p-3">
-        <div className="space-y-0.5">
-          <Label htmlFor="widget-voice-chat">Voice chat (beta)</Label>
-          <p className="text-xs text-muted-foreground">
-            Let visitors talk to the agent live through their mic, right in the widget — no phone number needed.
-          </p>
+      <div className="grid gap-3">
+        <Label>Widget capabilities</Label>
+        <div className="flex flex-row items-center justify-between rounded-lg border p-3">
+          <div className="space-y-0.5">
+            <p className="text-sm font-medium leading-none">Text chat</p>
+            <p className="text-xs text-muted-foreground">A typed conversation with the AI, like a normal support chat.</p>
+          </div>
+          <input type="hidden" name="chat_enabled" value={chatEnabled ? "on" : "off"} />
+          <Switch id="widget-chat-enabled" checked={chatEnabled} onCheckedChange={setChatEnabled} />
         </div>
-        <input type="hidden" name="voice_chat_enabled" value={voiceChatEnabled ? "on" : "off"} />
-        <Switch id="widget-voice-chat" checked={voiceChatEnabled} onCheckedChange={setVoiceChatEnabled} />
+        <div className="flex flex-row items-center justify-between rounded-lg border p-3">
+          <div className="space-y-0.5">
+            <p className="text-sm font-medium leading-none">Voice chat</p>
+            <p className="text-xs text-muted-foreground">
+              A live spoken conversation through the visitor&apos;s mic — no phone number needed.
+            </p>
+          </div>
+          <input type="hidden" name="voice_chat_enabled" value={voiceChatEnabled ? "on" : "off"} />
+          <Switch id="widget-voice-chat" checked={voiceChatEnabled} onCheckedChange={setVoiceChatEnabled} />
+        </div>
+        {!chatEnabled && !voiceChatEnabled && (
+          <p className="text-xs text-destructive">Turn on at least one, or the widget bubble won&apos;t do anything.</p>
+        )}
       </div>
     </>
   );
