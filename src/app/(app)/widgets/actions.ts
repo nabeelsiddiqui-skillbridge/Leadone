@@ -27,6 +27,7 @@ interface WidgetFormValues {
   primary_color: string;
   greeting_message: string;
   agent_id: string | null;
+  voice_chat_enabled: boolean;
 }
 
 function widgetFieldsFromForm(formData: FormData): { error?: string; fields?: WidgetFormValues } {
@@ -36,6 +37,7 @@ function widgetFieldsFromForm(formData: FormData): { error?: string; fields?: Wi
   const primaryColor = String(formData.get("primary_color") ?? "").trim();
   const greetingMessage = cleanString(formData.get("greeting_message"));
   const agentId = cleanString(formData.get("agent_id"));
+  const voiceChatEnabled = String(formData.get("voice_chat_enabled") ?? "off") === "on";
 
   if (!name) return { error: "Name is required." };
   if (!MODES.includes(mode as WidgetMode)) return { error: "Choose a valid mode." };
@@ -50,6 +52,7 @@ function widgetFieldsFromForm(formData: FormData): { error?: string; fields?: Wi
       primary_color: primaryColor,
       greeting_message: greetingMessage ?? "Hi! How can we help you today?",
       agent_id: agentId,
+      voice_chat_enabled: voiceChatEnabled,
     },
   };
 }

@@ -493,6 +493,7 @@ export interface Database {
           answered_at: string | null;
           ended_at: string | null;
           created_at: string;
+          channel: "phone" | "web_widget";
         };
         Insert: Partial<Database["public"]["Tables"]["calls"]["Row"]> & { workspace_id: string };
         Update: Partial<Database["public"]["Tables"]["calls"]["Row"]>;
@@ -865,6 +866,7 @@ export interface Database {
           size: WidgetSize;
           greeting_message: string;
           status: WidgetStatus;
+          voice_chat_enabled: boolean;
           created_at: string;
           updated_at: string;
         };

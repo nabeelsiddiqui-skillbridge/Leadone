@@ -14,7 +14,7 @@ export async function getActiveWidgetByKey(key: string) {
   const supabase = createServiceRoleClient();
   const { data: widget } = await supabase
     .from("chat_widgets")
-    .select("id, workspace_id, agent_id, name, mode, primary_color, size, greeting_message, status")
+    .select("id, workspace_id, agent_id, name, mode, primary_color, size, greeting_message, status, voice_chat_enabled")
     .eq("public_key", key)
     .eq("status", "active")
     .maybeSingle();

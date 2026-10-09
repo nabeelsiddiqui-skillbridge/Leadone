@@ -20,6 +20,7 @@ export default async function WidgetPage({ params }: { params: Promise<{ key: st
         primaryColor={widget.primary_color}
         size={widget.size}
         greetingMessage={widget.greeting_message}
+        voiceChatEnabled={widget.voice_chat_enabled}
       />
     </div>
   );

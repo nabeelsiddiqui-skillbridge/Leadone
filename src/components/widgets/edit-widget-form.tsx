@@ -52,6 +52,7 @@ export function EditWidgetForm({
           size: widget.size,
           primaryColor: widget.primary_color,
           greetingMessage: widget.greeting_message,
+          voiceChatEnabled: widget.voice_chat_enabled,
         }}
       />
       <Button type="submit" disabled={pending} className="justify-self-start">

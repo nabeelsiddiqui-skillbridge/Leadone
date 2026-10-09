@@ -28,5 +28,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ key:
     greetingMessage: widget.greeting_message,
     callEnabled: widget.mode === "call" || widget.mode === "both",
     chatEnabled: widget.mode === "chat" || widget.mode === "both",
+    voiceChatEnabled: widget.voice_chat_enabled,
   });
 }

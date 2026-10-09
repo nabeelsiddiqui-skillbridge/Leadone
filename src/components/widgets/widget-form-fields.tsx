@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import type { WidgetMode, WidgetSize } from "@/lib/supabase/database.types";
 
 const COLOR_PRESETS = ["#1B4D3E", "#2563EB", "#7C3AED", "#DC2626", "#0891B2", "#111827"];
@@ -17,6 +18,7 @@ export interface WidgetFormDefaults {
   size?: WidgetSize;
   primaryColor?: string;
   greetingMessage?: string;
+  voiceChatEnabled?: boolean;
 }
 
 export function WidgetFormFields({
@@ -27,6 +29,7 @@ export function WidgetFormFields({
   defaults?: WidgetFormDefaults;
 }) {
   const [color, setColor] = useState(defaults?.primaryColor ?? "#1B4D3E");
+  const [voiceChatEnabled, setVoiceChatEnabled] = useState(defaults?.voiceChatEnabled ?? false);
 
   return (
     <>
@@ -124,6 +127,17 @@ export function WidgetFormFields({
           placeholder="Hi! How can we help you today?"
           rows={2}
         />
+      </div>
+
+      <div className="flex flex-row items-center justify-between rounded-lg border p-3">
+        <div className="space-y-0.5">
+          <Label htmlFor="widget-voice-chat">Voice chat (beta)</Label>
+          <p className="text-xs text-muted-foreground">
+            Let visitors talk to the agent live through their mic, right in the widget — no phone number needed.
+          </p>
+        </div>
+        <input type="hidden" name="voice_chat_enabled" value={voiceChatEnabled ? "on" : "off"} />
+        <Switch id="widget-voice-chat" checked={voiceChatEnabled} onCheckedChange={setVoiceChatEnabled} />
       </div>
     </>
   );
