@@ -8,7 +8,10 @@ export type CredentialProvider =
   // Lead Discovery: Claude qualification, plus one provider per API-backed
   // source connector (see src/lib/discovery/sources) so each shows up in
   // the admin credentials UI the same way every other integration does.
-  | "anthropic" | "google_places" | "hunter_io" | "job_postings" | "news_funding";
+  | "anthropic" | "google_places" | "hunter_io" | "job_postings" | "news_funding"
+  // Alternate voice/conversation engine for agents - see
+  // services/realtime-voice/src/elevenLabsConversation.ts.
+  | "elevenlabs";
 
 /** process.env fallback used to bootstrap the platform before an admin sets a DB-stored key. */
 const ENV_FALLBACKS: Partial<Record<`${CredentialProvider}:${string}`, string>> = {
@@ -18,6 +21,7 @@ const ENV_FALLBACKS: Partial<Record<`${CredentialProvider}:${string}`, string>> 
   "google:client_id": process.env.GOOGLE_CLIENT_ID,
   "google:client_secret": process.env.GOOGLE_CLIENT_SECRET,
   "anthropic:api_key": process.env.ANTHROPIC_API_KEY,
+  "elevenlabs:api_key": process.env.ELEVENLABS_API_KEY,
 };
 
 /**

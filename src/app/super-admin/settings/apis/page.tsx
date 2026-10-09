@@ -16,6 +16,7 @@ import {
   testOpenAiConnectionAction,
   testTwilioConnectionAction,
   testAnthropicConnectionAction,
+  testElevenLabsConnectionAction,
 } from "@/app/super-admin/settings/actions";
 import type { Json } from "@/lib/supabase/database.types";
 
@@ -122,6 +123,27 @@ export default async function SuperAdminSettingsApisPage() {
                 envFallbackConfigured={Boolean(process.env.ANTHROPIC_API_KEY)}
               />
               <TestConnectionButton label="Validate Anthropic connection" action={testAnthropicConnectionAction} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">ElevenLabs</CardTitle>
+              <CardDescription>
+                Alternate voice/conversation engine agents can use instead of OpenAI Realtime - set a key here, then pick
+                &quot;ElevenLabs&quot; as the voice provider when creating or editing an agent.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <CredentialForm
+                provider="elevenlabs"
+                keyName="api_key"
+                label="API Key"
+                placeholder="sk_..."
+                currentLast4={credMap.get("elevenlabs:api_key") ?? null}
+                envFallbackConfigured={Boolean(process.env.ELEVENLABS_API_KEY)}
+              />
+              <TestConnectionButton label="Validate ElevenLabs connection" action={testElevenLabsConnectionAction} />
             </CardContent>
           </Card>
 

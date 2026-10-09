@@ -619,7 +619,7 @@ export interface Database {
           id: string;
           scope: "platform" | "workspace";
           workspace_id: string | null;
-          provider: "openai" | "twilio" | "google" | "smtp" | "webhook" | "anthropic" | "google_places" | "hunter_io" | "job_postings" | "news_funding";
+          provider: "openai" | "twilio" | "google" | "smtp" | "webhook" | "anthropic" | "google_places" | "hunter_io" | "job_postings" | "news_funding" | "elevenlabs";
           key_name: string;
           ciphertext: string;
           iv: string;
@@ -630,7 +630,7 @@ export interface Database {
         };
         Insert: Partial<Database["public"]["Tables"]["integration_credentials"]["Row"]> & {
           scope: "platform" | "workspace";
-          provider: "openai" | "twilio" | "google" | "smtp" | "webhook" | "anthropic" | "google_places" | "hunter_io" | "job_postings" | "news_funding";
+          provider: "openai" | "twilio" | "google" | "smtp" | "webhook" | "anthropic" | "google_places" | "hunter_io" | "job_postings" | "news_funding" | "elevenlabs";
           key_name: string;
           ciphertext: string;
           iv: string;

@@ -112,6 +112,24 @@ export async function testAnthropicConnectionAction(): Promise<AdminActionResult
   }
 }
 
+export async function testElevenLabsConnectionAction(): Promise<AdminActionResult> {
+  const key = await resolveCredential(null, "elevenlabs", "api_key");
+  if (!key) return { error: "No ElevenLabs key configured (platform credential or ELEVENLABS_API_KEY env var)." };
+
+  try {
+    const response = await fetch("https://api.elevenlabs.io/v1/user", {
+      headers: { "xi-api-key": key },
+    });
+    if (!response.ok) {
+      const body = await response.text();
+      return { error: `ElevenLabs rejected the key (${response.status}): ${body.slice(0, 200)}` };
+    }
+    return { message: "ElevenLabs connection verified." };
+  } catch (err) {
+    return { error: `Could not reach ElevenLabs: ${(err as Error).message}` };
+  }
+}
+
 export async function testTwilioConnectionAction(): Promise<AdminActionResult> {
   const [accountSid, authToken] = await Promise.all([
     resolveCredential(null, "twilio", "account_sid"),
