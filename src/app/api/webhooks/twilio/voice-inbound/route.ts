@@ -3,7 +3,7 @@ import twilioLib from "twilio";
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { resolveTwilioCredentials } from "@/lib/credentials";
-import { verifyTwilioSignature, parseTwilioForm } from "@/lib/twilio";
+import { verifyTwilioSignature, parseTwilioForm, startCallRecording } from "@/lib/twilio";
 import { registerElevenLabsCall } from "@/lib/elevenlabs";
 
 export const runtime = "nodejs";
@@ -97,6 +97,9 @@ export async function POST(request: Request) {
   if (insertError || !call) {
     return rejectTwiml("Sorry, something went wrong on our end. Please try again shortly.");
   }
+
+  const baseUrl = process.env.TWILIO_WEBHOOK_BASE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
+  await startCallRecording(phoneNumber.workspace_id, callSid, call.id, baseUrl);
 
   const { data: agent } = await db
     .from("agents")

@@ -122,14 +122,21 @@ export async function placeCall(
   const baseUrl = process.env.TWILIO_WEBHOOK_BASE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
 
   try {
+    // Recording is started explicitly via the REST API from the voice
+    // webhook instead (see startCallRecording in lib/twilio.ts) - not with
+    // `record: true` here. That flag only applies to calls originated via
+    // this same calls.create() call, so inbound calls (which never go
+    // through here) got no recording at all; REST-starting it uniformly
+    // from both voice webhooks, once the call is confirmed in-progress and
+    // <Connect><Stream> is about to take over its media, covers both
+    // directions and matches Twilio's own documented pattern for recording
+    // calls that hand off to Media Streams.
     const twilioCall = await twilio.client.calls.create({
       to: contact.phone,
       from: phoneNumber.phone_number,
       url: `${baseUrl}/api/webhooks/twilio/voice?callId=${call.id}`,
       statusCallback: `${baseUrl}/api/webhooks/twilio/status?callId=${call.id}`,
       statusCallbackEvent: ["initiated", "ringing", "answered", "completed"],
-      record: true,
-      recordingStatusCallback: `${baseUrl}/api/webhooks/twilio/recording?callId=${call.id}`,
       machineDetection: "DetectMessageEnd",
     });
 

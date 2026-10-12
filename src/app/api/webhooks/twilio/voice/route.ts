@@ -3,7 +3,7 @@ import twilioLib from "twilio";
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { resolveTwilioCredentials } from "@/lib/credentials";
-import { verifyTwilioSignature, parseTwilioForm } from "@/lib/twilio";
+import { verifyTwilioSignature, parseTwilioForm, startCallRecording } from "@/lib/twilio";
 import { registerElevenLabsCall } from "@/lib/elevenlabs";
 
 export const runtime = "nodejs";
@@ -42,6 +42,11 @@ export async function POST(request: Request) {
   const signature = request.headers.get("X-Twilio-Signature");
   if (!verifyTwilioSignature(creds.authToken, signature, request.url, params)) {
     return new NextResponse("Invalid signature", { status: 403 });
+  }
+
+  const baseUrl = process.env.TWILIO_WEBHOOK_BASE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
+  if (params.CallSid) {
+    await startCallRecording(call.workspace_id, params.CallSid, callId, baseUrl);
   }
 
   if (call.agent_id) {

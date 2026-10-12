@@ -10,6 +10,37 @@ export async function getTwilioClientForWorkspace(workspaceId: string) {
 }
 
 /**
+ * Explicitly starts recording via the REST API, called from both voice
+ * webhook handlers once the call's `calls` row exists and its signature is
+ * verified - rather than relying only on the `record: true` flag passed to
+ * calls.create() for outbound calls. Two reasons: (1) that flag only exists
+ * on calls WE
+ * originate, so inbound calls (answered via the "a call comes in" webhook,
+ * never going through calls.create()) got no recording at all; (2) a REST-
+ * started recording is the pattern Twilio itself documents for calls using
+ * <Connect><Stream> for Media Streams, rather than depending on recording
+ * configured before the call is even answered to survive that handoff.
+ * Best-effort: a failure here should never block the call itself.
+ */
+export async function startCallRecording(
+  workspaceId: string,
+  twilioCallSid: string,
+  callId: string,
+  baseUrl: string
+) {
+  const result = await getTwilioClientForWorkspace(workspaceId);
+  if (!result) return;
+  try {
+    await result.client.calls(twilioCallSid).recordings.create({
+      recordingStatusCallback: `${baseUrl}/api/webhooks/twilio/recording?callId=${callId}`,
+      recordingStatusCallbackEvent: ["completed"],
+    });
+  } catch (err) {
+    console.error(`[call ${callId}] Failed to start recording:`, (err as Error).message);
+  }
+}
+
+/**
  * The platform's own Twilio account (integration_credentials scope=platform,
  * set from Super Admin → Settings → APIs), used to search for and buy real
  * numbers on a workspace's behalf — separate from a workspace's own Twilio
