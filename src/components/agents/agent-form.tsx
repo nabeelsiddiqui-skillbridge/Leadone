@@ -161,9 +161,9 @@ export interface AgentFormProps {
 function toActionValues(values: FormValues): AgentFormValues {
   return {
     ...values,
-    elevenlabs_voice_id: values.elevenlabs_voice_id.trim() || null,
-    qualification_questions: values.qualification_questions
-      .map((q) => q.value.trim())
+    elevenlabs_voice_id: (values.elevenlabs_voice_id ?? "").trim() || null,
+    qualification_questions: (values.qualification_questions ?? [])
+      .map((q) => (q?.value ?? "").trim())
       .filter((q) => q.length > 0),
   };
 }
@@ -195,7 +195,17 @@ export function AgentForm({ mode, agentId, defaultValues, knowledgeBases }: Agen
 
   function onSubmit(values: FormValues) {
     startTransition(async () => {
-      const actionValues = toActionValues(values);
+      let actionValues: AgentFormValues;
+      try {
+        actionValues = toActionValues(values);
+      } catch (err) {
+        // A client-side throw here (before the server action is even called)
+        // isn't covered by that action's own try/catch - show it instead of
+        // letting it fall through to the page's generic crash boundary.
+        toast.error(err instanceof Error ? err.message : "Couldn't prepare the form for saving.");
+        return;
+      }
+
       const result =
         mode === "create"
           ? await createAgentAction(actionValues)
