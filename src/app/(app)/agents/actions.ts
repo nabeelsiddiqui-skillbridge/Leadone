@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { requireCurrentWorkspace } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getAgentTemplate, interpolateTemplate } from "@/lib/agent-templates";
+import { syncElevenLabsAgent } from "@/lib/elevenlabs";
 import type { AgentStatus, Database } from "@/lib/supabase/database.types";
 
 type AgentRow = Database["public"]["Tables"]["agents"]["Row"];
@@ -41,6 +42,8 @@ export interface AgentFormValues {
   silence_timeout_seconds: number;
   end_call_rules: string | null;
   call_direction: "outbound" | "inbound" | "both";
+  voice_provider: "openai" | "elevenlabs";
+  elevenlabs_voice_id: string | null;
 }
 
 function toAgentFields(values: AgentFormValues) {
@@ -69,7 +72,30 @@ function toAgentFields(values: AgentFormValues) {
     silence_timeout_seconds: values.silence_timeout_seconds,
     end_call_rules: values.end_call_rules || null,
     call_direction: values.call_direction,
+    voice_provider: values.voice_provider,
+    elevenlabs_voice_id: values.elevenlabs_voice_id || null,
   } satisfies Partial<AgentInsert>;
+}
+
+/**
+ * Creates/updates the matching agent on ElevenLabs' side when this agent
+ * uses that engine, and stores the synced elevenlabs_agent_id back onto the
+ * row. Errors are surfaced to the form (not swallowed) since an agent whose
+ * provider is 'elevenlabs' but has no elevenlabs_agent_id can't take calls.
+ */
+async function syncElevenLabsIfNeeded(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  agent: AgentRow
+): Promise<AgentActionResult> {
+  if (agent.voice_provider !== "elevenlabs") return {};
+
+  const result = await syncElevenLabsAgent(agent);
+  if ("error" in result) return { error: result.error };
+
+  if (result.agentId !== agent.elevenlabs_agent_id) {
+    await supabase.from("agents").update({ elevenlabs_agent_id: result.agentId }).eq("id", agent.id);
+  }
+  return {};
 }
 
 export async function createAgentAction(values: AgentFormValues): Promise<AgentActionResult> {
@@ -88,12 +114,15 @@ export async function createAgentAction(values: AgentFormValues): Promise<AgentA
       status: "draft",
       created_by: user?.id ?? null,
     })
-    .select("id")
+    .select("*")
     .single();
 
   if (error || !agent) {
     return { error: error?.message ?? "Failed to create agent." };
   }
+
+  const syncResult = await syncElevenLabsIfNeeded(supabase, agent);
+  if (syncResult.error) return syncResult;
 
   revalidatePath("/agents");
   redirect(`/agents/${agent.id}`);
@@ -111,12 +140,15 @@ export async function updateAgentAction(
     .update(toAgentFields(values))
     .eq("id", agentId)
     .eq("workspace_id", workspace.id)
-    .select("id")
+    .select("*")
     .single();
 
   if (error || !agent) {
     return { error: error?.message ?? "Failed to update agent." };
   }
+
+  const syncResult = await syncElevenLabsIfNeeded(supabase, agent);
+  if (syncResult.error) return syncResult;
 
   revalidatePath("/agents");
   revalidatePath(`/agents/${agentId}`);

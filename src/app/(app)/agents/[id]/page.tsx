@@ -233,6 +233,8 @@ async function AgentDetailPageInner({
     language: agent.language,
     accent: agent.accent ?? "",
     voice: agent.voice,
+    voice_provider: agent.voice_provider,
+    elevenlabs_voice_id: agent.elevenlabs_voice_id ?? "",
     opening_greeting: agent.opening_greeting ?? "",
     system_prompt: agent.system_prompt ?? "",
     conversation_instructions: agent.conversation_instructions ?? "",

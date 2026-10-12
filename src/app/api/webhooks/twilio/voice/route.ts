@@ -4,6 +4,7 @@ import twilioLib from "twilio";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { resolveTwilioCredentials } from "@/lib/credentials";
 import { verifyTwilioSignature, parseTwilioForm } from "@/lib/twilio";
+import { registerElevenLabsCall } from "@/lib/elevenlabs";
 
 export const runtime = "nodejs";
 
@@ -23,7 +24,11 @@ export async function POST(request: Request) {
   }
 
   const db = createServiceRoleClient();
-  const { data: call } = await db.from("calls").select("id, workspace_id").eq("id", callId).maybeSingle();
+  const { data: call } = await db
+    .from("calls")
+    .select("id, workspace_id, agent_id")
+    .eq("id", callId)
+    .maybeSingle();
   if (!call) {
     return new NextResponse("Unknown call", { status: 404 });
   }
@@ -37,6 +42,31 @@ export async function POST(request: Request) {
   const signature = request.headers.get("X-Twilio-Signature");
   if (!verifyTwilioSignature(creds.authToken, signature, request.url, params)) {
     return new NextResponse("Invalid signature", { status: 403 });
+  }
+
+  if (call.agent_id) {
+    const { data: agent } = await db
+      .from("agents")
+      .select("voice_provider, elevenlabs_agent_id")
+      .eq("id", call.agent_id)
+      .maybeSingle();
+
+    if (agent?.voice_provider === "elevenlabs" && agent.elevenlabs_agent_id && params.From && params.To) {
+      const result = await registerElevenLabsCall({
+        elevenLabsAgentId: agent.elevenlabs_agent_id,
+        fromNumber: params.From,
+        toNumber: params.To,
+        direction: "outbound",
+        callId,
+      });
+      if ("twiml" in result) {
+        return new NextResponse(result.twiml, { status: 200, headers: { "Content-Type": "text/xml" } });
+      }
+      console.error(`[call ${callId}] ElevenLabs register call failed:`, result.error);
+      // Fall through to the OpenAI/realtime-voice path below rather than
+      // dropping the call outright - better a call that works on the
+      // fallback engine than one that just fails.
+    }
   }
 
   // callId travels as a <Parameter> (delivered in the WebSocket's "start"

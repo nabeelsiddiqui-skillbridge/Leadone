@@ -35,6 +35,7 @@ import {
 
 import { createAgentAction, updateAgentAction, type AgentFormValues } from "@/app/(app)/agents/actions";
 import { VoicePicker } from "@/components/agents/voice-picker";
+import { ElevenLabsVoicePicker } from "@/components/agents/elevenlabs-voice-picker";
 import { NewKnowledgeBaseDialog } from "@/components/knowledge-base/new-knowledge-base-dialog";
 import { AddContentDialog } from "@/components/knowledge-base/add-content-dialog";
 import { DocumentStatusBadge } from "@/components/knowledge-base/document-status-badge";
@@ -60,6 +61,8 @@ const formSchema = z
     language: z.string().trim().min(1, "Language is required").max(20),
     accent: z.string().trim().max(100),
     voice: z.string().trim().min(1, "Voice is required"),
+    voice_provider: z.enum(["openai", "elevenlabs"]),
+    elevenlabs_voice_id: z.string().trim(),
     opening_greeting: z.string().trim().max(2000),
     system_prompt: z.string().trim().max(8000),
     conversation_instructions: z.string().trim().max(8000),
@@ -108,6 +111,8 @@ const DEFAULT_VALUES: FormValues = {
   language: "en-US",
   accent: "",
   voice: "marin",
+  voice_provider: "openai",
+  elevenlabs_voice_id: "",
   opening_greeting: "",
   system_prompt: "",
   conversation_instructions: "",
@@ -156,6 +161,7 @@ export interface AgentFormProps {
 function toActionValues(values: FormValues): AgentFormValues {
   return {
     ...values,
+    elevenlabs_voice_id: values.elevenlabs_voice_id.trim() || null,
     qualification_questions: values.qualification_questions
       .map((q) => q.value.trim())
       .filter((q) => q.length > 0),
@@ -180,6 +186,11 @@ export function AgentForm({ mode, agentId, defaultValues, knowledgeBases }: Agen
   const callTransferEnabled = useWatch({
     control: form.control,
     name: "call_transfer_enabled",
+  });
+
+  const voiceProvider = useWatch({
+    control: form.control,
+    name: "voice_provider",
   });
 
   function onSubmit(values: FormValues) {
@@ -378,21 +389,62 @@ export function AgentForm({ mode, agentId, defaultValues, knowledgeBases }: Agen
                 />
                 <FormField
                   control={form.control}
-                  name="voice"
+                  name="voice_provider"
                   render={({ field }) => (
                     <FormItem className="sm:col-span-2">
-                      <FormLabel>Voice</FormLabel>
-                      <FormControl>
-                        <VoicePicker value={field.value} onChange={field.onChange} />
-                      </FormControl>
+                      <FormLabel>Voice engine</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="openai">OpenAI Realtime</SelectItem>
+                          <SelectItem value="elevenlabs">ElevenLabs</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormDescription>
-                        Tap the play button to preview a voice before picking it. Marin and Cedar are OpenAI&apos;s
-                        newest, most natural-sounding voices.
+                        ElevenLabs powers both the voice and the conversation itself for this agent&apos;s calls - a
+                        separate engine from OpenAI Realtime, not just a different voice.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+                {voiceProvider === "elevenlabs" ? (
+                  <FormField
+                    control={form.control}
+                    name="elevenlabs_voice_id"
+                    render={({ field }) => (
+                      <FormItem className="sm:col-span-2">
+                        <FormLabel>Voice</FormLabel>
+                        <FormControl>
+                          <ElevenLabsVoicePicker value={field.value} onChange={field.onChange} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : (
+                  <FormField
+                    control={form.control}
+                    name="voice"
+                    render={({ field }) => (
+                      <FormItem className="sm:col-span-2">
+                        <FormLabel>Voice</FormLabel>
+                        <FormControl>
+                          <VoicePicker value={field.value} onChange={field.onChange} />
+                        </FormControl>
+                        <FormDescription>
+                          Tap the play button to preview a voice before picking it. Marin and Cedar are OpenAI&apos;s
+                          newest, most natural-sounding voices.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
               </CardContent>
             </Card>
           </TabsContent>

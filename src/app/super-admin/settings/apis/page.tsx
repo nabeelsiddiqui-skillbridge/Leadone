@@ -144,6 +144,20 @@ export default async function SuperAdminSettingsApisPage() {
                 envFallbackConfigured={Boolean(process.env.ELEVENLABS_API_KEY)}
               />
               <TestConnectionButton label="Validate ElevenLabs connection" action={testElevenLabsConnectionAction} />
+              <CredentialForm
+                provider="elevenlabs"
+                keyName="webhook_secret"
+                label="Post-call webhook HMAC secret"
+                placeholder="whsec_..."
+                currentLast4={credMap.get("elevenlabs:webhook_secret") ?? null}
+                envFallbackConfigured={Boolean(process.env.ELEVENLABS_WEBHOOK_SECRET)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Enable a &quot;Transcription&quot; post-call webhook for your workspace at{" "}
+                <code className="text-xs">elevenlabs.io/app/agents/settings</code>, pointing it at{" "}
+                <code className="text-xs">{(process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "")}/api/webhooks/elevenlabs/post-call</code>
+                . Paste the shared secret it gives you above so call transcripts/summaries sync back here.
+              </p>
             </CardContent>
           </Card>
 

@@ -205,6 +205,9 @@ export interface Database {
           end_call_rules: string | null;
           call_direction: CallDirection;
           status: AgentStatus;
+          voice_provider: "openai" | "elevenlabs";
+          elevenlabs_agent_id: string | null;
+          elevenlabs_voice_id: string | null;
           created_by: string | null;
           created_at: string;
           updated_at: string;
@@ -494,6 +497,7 @@ export interface Database {
           ended_at: string | null;
           created_at: string;
           channel: "phone" | "web_widget";
+          elevenlabs_conversation_id: string | null;
         };
         Insert: Partial<Database["public"]["Tables"]["calls"]["Row"]> & { workspace_id: string };
         Update: Partial<Database["public"]["Tables"]["calls"]["Row"]>;

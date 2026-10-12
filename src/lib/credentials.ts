@@ -22,6 +22,7 @@ const ENV_FALLBACKS: Partial<Record<`${CredentialProvider}:${string}`, string>> 
   "google:client_secret": process.env.GOOGLE_CLIENT_SECRET,
   "anthropic:api_key": process.env.ANTHROPIC_API_KEY,
   "elevenlabs:api_key": process.env.ELEVENLABS_API_KEY,
+  "elevenlabs:webhook_secret": process.env.ELEVENLABS_WEBHOOK_SECRET,
 };
 
 /**

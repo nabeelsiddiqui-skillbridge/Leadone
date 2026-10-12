@@ -4,6 +4,7 @@ import twilioLib from "twilio";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { resolveTwilioCredentials } from "@/lib/credentials";
 import { verifyTwilioSignature, parseTwilioForm } from "@/lib/twilio";
+import { registerElevenLabsCall } from "@/lib/elevenlabs";
 
 export const runtime = "nodejs";
 
@@ -95,6 +96,28 @@ export async function POST(request: Request) {
 
   if (insertError || !call) {
     return rejectTwiml("Sorry, something went wrong on our end. Please try again shortly.");
+  }
+
+  const { data: agent } = await db
+    .from("agents")
+    .select("voice_provider, elevenlabs_agent_id")
+    .eq("id", phoneNumber.agent_id)
+    .maybeSingle();
+
+  if (agent?.voice_provider === "elevenlabs" && agent.elevenlabs_agent_id) {
+    const result = await registerElevenLabsCall({
+      elevenLabsAgentId: agent.elevenlabs_agent_id,
+      fromNumber: from,
+      toNumber: to,
+      direction: "inbound",
+      callId: call.id,
+    });
+    if ("twiml" in result) {
+      return new NextResponse(result.twiml, { status: 200, headers: { "Content-Type": "text/xml" } });
+    }
+    console.error(`[call ${call.id}] ElevenLabs register call failed:`, result.error);
+    // Fall through to the OpenAI/realtime-voice path below rather than
+    // dropping the call outright.
   }
 
   const streamUrl = process.env.REALTIME_WEBSOCKET_URL ?? "ws://localhost:8080/media-stream";
