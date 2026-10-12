@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 
 import { requireCurrentWorkspace } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -99,60 +99,73 @@ async function syncElevenLabsIfNeeded(
 }
 
 export async function createAgentAction(values: AgentFormValues): Promise<AgentActionResult> {
-  const { workspace } = await requireCurrentWorkspace();
-  const supabase = await createClient();
+  try {
+    const { workspace } = await requireCurrentWorkspace();
+    const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  const { data: agent, error } = await supabase
-    .from("agents")
-    .insert({
-      ...toAgentFields(values),
-      workspace_id: workspace.id,
-      status: "draft",
-      created_by: user?.id ?? null,
-    })
-    .select("*")
-    .single();
+    const { data: agent, error } = await supabase
+      .from("agents")
+      .insert({
+        ...toAgentFields(values),
+        workspace_id: workspace.id,
+        status: "draft",
+        created_by: user?.id ?? null,
+      })
+      .select("*")
+      .single();
 
-  if (error || !agent) {
-    return { error: error?.message ?? "Failed to create agent." };
+    if (error || !agent) {
+      return { error: error?.message ?? "Failed to create agent." };
+    }
+
+    const syncResult = await syncElevenLabsIfNeeded(supabase, agent);
+    if (syncResult.error) return syncResult;
+
+    revalidatePath("/agents");
+    redirect(`/agents/${agent.id}`);
+  } catch (err) {
+    // redirect() throws by design - let that (and other framework control-flow
+    // signals) pass through untouched, only turn real errors into a result the
+    // form can show instead of crashing to Next's unhelpful generic error page.
+    unstable_rethrow(err);
+    return { error: err instanceof Error ? err.message : "Failed to create agent." };
   }
-
-  const syncResult = await syncElevenLabsIfNeeded(supabase, agent);
-  if (syncResult.error) return syncResult;
-
-  revalidatePath("/agents");
-  redirect(`/agents/${agent.id}`);
 }
 
 export async function updateAgentAction(
   agentId: string,
   values: AgentFormValues
 ): Promise<AgentActionResult> {
-  const { workspace } = await requireCurrentWorkspace();
-  const supabase = await createClient();
+  try {
+    const { workspace } = await requireCurrentWorkspace();
+    const supabase = await createClient();
 
-  const { data: agent, error } = await supabase
-    .from("agents")
-    .update(toAgentFields(values))
-    .eq("id", agentId)
-    .eq("workspace_id", workspace.id)
-    .select("*")
-    .single();
+    const { data: agent, error } = await supabase
+      .from("agents")
+      .update(toAgentFields(values))
+      .eq("id", agentId)
+      .eq("workspace_id", workspace.id)
+      .select("*")
+      .single();
 
-  if (error || !agent) {
-    return { error: error?.message ?? "Failed to update agent." };
+    if (error || !agent) {
+      return { error: error?.message ?? "Failed to update agent." };
+    }
+
+    const syncResult = await syncElevenLabsIfNeeded(supabase, agent);
+    if (syncResult.error) return syncResult;
+
+    revalidatePath("/agents");
+    revalidatePath(`/agents/${agentId}`);
+    return {};
+  } catch (err) {
+    unstable_rethrow(err);
+    return { error: err instanceof Error ? err.message : "Failed to update agent." };
   }
-
-  const syncResult = await syncElevenLabsIfNeeded(supabase, agent);
-  if (syncResult.error) return syncResult;
-
-  revalidatePath("/agents");
-  revalidatePath(`/agents/${agentId}`);
-  return {};
 }
 
 export async function duplicateAgentAction(agentId: string): Promise<AgentActionResult> {
