@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AgentForm, type AgentKnowledgeBase } from "@/components/agents/agent-form";
+import { DiagnosticErrorBoundary } from "@/components/diagnostic-error-boundary";
 import { AddLeadsDialog } from "@/components/campaigns/add-leads-dialog";
 import { CampaignDetailActions } from "@/components/campaigns/campaign-detail-actions";
 import { RenameCampaignDialog } from "@/components/campaigns/rename-campaign-dialog";
@@ -350,12 +351,14 @@ async function AgentDetailPageInner({
           <h2 className="text-lg font-semibold tracking-tight text-foreground">Agent Settings</h2>
           <p className="text-sm text-muted-foreground">Edit this agent&apos;s persona, conversation behavior, and knowledge.</p>
         </div>
-        <AgentForm
-          mode="edit"
-          agentId={agent.id}
-          defaultValues={defaultValues}
-          knowledgeBases={agentKnowledgeBases}
-        />
+        <DiagnosticErrorBoundary>
+          <AgentForm
+            mode="edit"
+            agentId={agent.id}
+            defaultValues={defaultValues}
+            knowledgeBases={agentKnowledgeBases}
+          />
+        </DiagnosticErrorBoundary>
       </div>
     </div>
   );
