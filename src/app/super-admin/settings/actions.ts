@@ -36,19 +36,30 @@ export async function savePlatformCredentialAction(
   const { ciphertext, iv } = encryptSecret(plaintext.trim());
   const last4 = plaintext.trim().slice(-4);
 
-  const { error } = await db.from("integration_credentials").upsert(
-    {
-      scope: "platform",
-      workspace_id: null,
-      provider,
-      key_name: keyName,
-      ciphertext,
-      iv,
-      last4,
-      created_by: admin.id,
-    },
-    { onConflict: "scope,workspace_id,provider,key_name" }
-  );
+  // Can't rely on upsert's ON CONFLICT here: the unique constraint includes
+  // workspace_id, which is always NULL for platform scope, and Postgres never
+  // treats NULL = NULL as a match - every "upsert" would silently insert a
+  // duplicate row instead of replacing the old one. Delete then insert instead.
+  const { error: deleteError } = await db
+    .from("integration_credentials")
+    .delete()
+    .eq("scope", "platform")
+    .is("workspace_id", null)
+    .eq("provider", provider)
+    .eq("key_name", keyName);
+
+  if (deleteError) return { error: deleteError.message };
+
+  const { error } = await db.from("integration_credentials").insert({
+    scope: "platform",
+    workspace_id: null,
+    provider,
+    key_name: keyName,
+    ciphertext,
+    iv,
+    last4,
+    created_by: admin.id,
+  });
 
   if (error) return { error: error.message };
 
