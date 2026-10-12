@@ -163,7 +163,11 @@ export default async function ContactsPage({
                     <TableCell className="tabular-nums">{contact.lead_score}</TableCell>
                     <TableCell>{contact.owner_id ? (ownerNames.get(contact.owner_id) ?? "—") : "Unassigned"}</TableCell>
                     <TableCell className="text-right">
-                      <ContactRowActions contactId={contact.id} contactName={name === "—" ? contact.phone : name} />
+                      <ContactRowActions
+                        contactId={contact.id}
+                        contactName={name === "—" ? contact.phone : name}
+                        status={contact.status}
+                      />
                     </TableCell>
                   </TableRow>
                 );

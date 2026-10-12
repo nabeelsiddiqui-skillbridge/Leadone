@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/shared/empty-state";
-import { ContactStatusBadge } from "@/components/contacts/status-badge";
+import { ContactStatusSelect } from "@/components/contacts/status-select";
 import { AddNoteForm } from "@/components/contacts/add-note-form";
 
 type CampaignRow = { id: string; name: string; status: string };
@@ -155,7 +155,7 @@ export default async function ContactProfilePage({ params }: { params: Promise<{
           <div>
             <p className="text-xs font-medium text-muted-foreground">Last Disposition</p>
             <div className="mt-1">
-              <ContactStatusBadge status={contact.status} />
+              <ContactStatusSelect contactId={contact.id} status={contact.status} className="w-fit" />
             </div>
           </div>
           <div>

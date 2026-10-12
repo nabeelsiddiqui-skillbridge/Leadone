@@ -151,6 +151,37 @@ export async function bulkImportContactsAction(rows: ContactImportRow[]): Promis
   return { imported, skipped };
 }
 
+/**
+ * Changes a contact's disposition - e.g. taking them off "Qualified" or
+ * "Do Not Call" after a status was set in error, or manually marking them
+ * "Not Interested"/"Do Not Call" outside of a call. Setting status to
+ * "do_not_call" here only stops future campaign dials for this contact (see
+ * placeCall's contact.status check) - it does not add them to the workspace's
+ * separate Do Not Call phone-number list (Settings -> Do Not Call), which is
+ * the permanent, campaign-independent block list.
+ */
+export async function updateContactStatusAction(
+  contactId: string,
+  status: ContactStatus
+): Promise<{ error?: string }> {
+  const { workspace } = await requireCurrentWorkspace();
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("contacts")
+    .update({ status })
+    .eq("id", contactId)
+    .eq("workspace_id", workspace.id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/contacts");
+  revalidatePath(`/contacts/${contactId}`);
+  return {};
+}
+
 /** Deletes a contact (row-action dropdown on the list page). */
 export async function deleteContactAction(contactId: string): Promise<{ error?: string }> {
   const { workspace } = await requireCurrentWorkspace();
