@@ -182,6 +182,15 @@ export class CallSession {
       this.state.callerSpeaking = true;
       if (this.state.agentSpeaking && this.agent.interruptions_enabled) {
         // Barge-in: stop the model and flush whatever audio Twilio has queued.
+        // TEMPORARY diagnostic logging - live reports of the agent's voice
+        // "dropping mid-sentence" could be this firing on the agent's own
+        // echo/background noise rather than real caller speech (this exact
+        // false-positive class of bug has hit this codebase before - see the
+        // VAD threshold/noise_reduction history in openaiRealtime.ts). No
+        // per-event audio-pipeline logging has existed until now, so there
+        // was no way to tell a false trigger from genuine barge-in after the
+        // fact. Remove once the current report is resolved.
+        this.logEvent("barge_in", { turn: this.state.currentTurn, msSinceCallStart: Date.now() - this.state.callStartedAt });
         this.openai.cancelResponse();
         this.sendTwilioClear();
         this.state.agentSpeaking = false;
