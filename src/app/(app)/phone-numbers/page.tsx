@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { AddPhoneNumberDialog } from "@/components/phone-numbers/add-phone-number-dialog";
+import { BuyPhoneNumberDialog } from "@/components/phone-numbers/buy-phone-number-dialog";
 import { PhoneNumberRowActions } from "@/components/phone-numbers/phone-number-row-actions";
 import { InboundAgentSelect } from "@/components/phone-numbers/inbound-agent-select";
 import { InboundWebhookUrl } from "@/components/phone-numbers/inbound-webhook-url";
@@ -39,8 +40,13 @@ export default async function PhoneNumbersPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Phone Numbers"
-        description="Numbers your agents call out from, and numbers that answer calls coming in. Twilio sync and number purchasing land in a later phase — add the numbers you already own for now."
-        action={<AddPhoneNumberDialog />}
+        description="Numbers your agents call out from, and numbers that answer calls coming in. Buy a new one directly (if you've connected your own Twilio account under Integrations), or add a number you already own."
+        action={
+          <div className="flex items-center gap-2">
+            <BuyPhoneNumberDialog />
+            <AddPhoneNumberDialog />
+          </div>
+        }
       />
 
       {numbers && numbers.length > 0 && (

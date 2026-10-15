@@ -64,11 +64,9 @@ export interface AvailableNumber {
   capabilities: { voice: boolean; sms: boolean };
 }
 
-/** Searches the platform's Twilio account for purchasable US local numbers. */
-export async function searchAvailableNumbers(areaCode: string): Promise<AvailableNumber[]> {
-  const client = await getPlatformTwilioClient();
-  if (!client) throw new Error("Platform Twilio credentials are not configured.");
+type TwilioClient = ReturnType<typeof twilioLib>;
 
+async function searchNumbersWithClient(client: TwilioClient, areaCode: string): Promise<AvailableNumber[]> {
   const results = await client.availablePhoneNumbers("US").local.list({ areaCode: Number(areaCode), limit: 10 });
   return results.map((r) => ({
     phoneNumber: r.phoneNumber,
@@ -79,13 +77,55 @@ export async function searchAvailableNumbers(areaCode: string): Promise<Availabl
   }));
 }
 
+async function purchaseNumberWithClient(
+  client: TwilioClient,
+  phoneNumber: string
+): Promise<{ sid: string; phoneNumber: string }> {
+  const purchased = await client.incomingPhoneNumbers.create({ phoneNumber });
+  return { sid: purchased.sid, phoneNumber: purchased.phoneNumber };
+}
+
+/** Searches the platform's Twilio account for purchasable US local numbers. */
+export async function searchAvailableNumbers(areaCode: string): Promise<AvailableNumber[]> {
+  const client = await getPlatformTwilioClient();
+  if (!client) throw new Error("Platform Twilio credentials are not configured.");
+  return searchNumbersWithClient(client, areaCode);
+}
+
 /** Buys a number on the platform's Twilio account. Does not touch the app's own `phone_numbers` table — the caller inserts that row separately, scoped to whichever workspace it's being assigned to. */
 export async function purchaseNumber(phoneNumber: string): Promise<{ sid: string; phoneNumber: string }> {
   const client = await getPlatformTwilioClient();
   if (!client) throw new Error("Platform Twilio credentials are not configured.");
+  return purchaseNumberWithClient(client, phoneNumber);
+}
 
-  const purchased = await client.incomingPhoneNumbers.create({ phoneNumber });
-  return { sid: purchased.sid, phoneNumber: purchased.phoneNumber };
+/**
+ * Same as searchAvailableNumbers/purchaseNumber, but against a workspace's
+ * own Twilio account (its own Account SID/Auth Token, connected under
+ * Integrations) instead of the platform's - the self-service path for a
+ * workspace that wants to buy and manage its own numbers rather than
+ * waiting on a super admin to assign one.
+ */
+export async function searchAvailableNumbersForWorkspace(
+  workspaceId: string,
+  areaCode: string
+): Promise<AvailableNumber[]> {
+  const result = await getTwilioClientForWorkspace(workspaceId);
+  if (!result) {
+    throw new Error("Connect your Twilio account under Integrations first (Account SID + Auth Token).");
+  }
+  return searchNumbersWithClient(result.client, areaCode);
+}
+
+export async function purchaseNumberForWorkspace(
+  workspaceId: string,
+  phoneNumber: string
+): Promise<{ sid: string; phoneNumber: string }> {
+  const result = await getTwilioClientForWorkspace(workspaceId);
+  if (!result) {
+    throw new Error("Connect your Twilio account under Integrations first (Account SID + Auth Token).");
+  }
+  return purchaseNumberWithClient(result.client, phoneNumber);
 }
 
 /**

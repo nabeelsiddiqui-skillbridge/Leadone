@@ -4,14 +4,94 @@ import { revalidatePath } from "next/cache";
 
 import { requireCurrentWorkspace } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import {
+  searchAvailableNumbersForWorkspace,
+  purchaseNumberForWorkspace,
+  type AvailableNumber,
+} from "@/lib/twilio";
 
 export interface ActionState {
   error?: string;
   message?: string;
 }
 
+export interface SearchNumbersResult extends ActionState {
+  numbers?: AvailableNumber[];
+}
+
 function normalizePhone(raw: string) {
   return raw.trim();
+}
+
+function requireAdmin(role: string) {
+  if (role !== "owner" && role !== "admin") {
+    return "Only a workspace owner or admin can buy phone numbers.";
+  }
+  return null;
+}
+
+/** Self-service search against the workspace's own connected Twilio account (Integrations). */
+export async function searchWorkspaceNumbersAction(areaCode: string): Promise<SearchNumbersResult> {
+  const { workspace, role } = await requireCurrentWorkspace();
+  const adminError = requireAdmin(role);
+  if (adminError) return { error: adminError };
+
+  if (!/^\d{3}$/.test(areaCode)) {
+    return { error: "Enter a 3-digit US area code." };
+  }
+
+  try {
+    const numbers = await searchAvailableNumbersForWorkspace(workspace.id, areaCode);
+    if (numbers.length === 0) {
+      return { message: "No numbers available for that area code.", numbers: [] };
+    }
+    return { numbers };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to search Twilio." };
+  }
+}
+
+/** Self-service purchase on the workspace's own Twilio account, auto-assigned to this workspace. */
+export async function purchaseWorkspaceNumberAction(
+  phoneNumber: string,
+  friendlyName: string
+): Promise<ActionState> {
+  const { workspace, role } = await requireCurrentWorkspace();
+  const adminError = requireAdmin(role);
+  if (adminError) return { error: adminError };
+
+  const supabase = await createClient();
+
+  let purchased: { sid: string; phoneNumber: string };
+  try {
+    purchased = await purchaseNumberForWorkspace(workspace.id, phoneNumber);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to purchase number from Twilio." };
+  }
+
+  const { count } = await supabase
+    .from("phone_numbers")
+    .select("id", { count: "exact", head: true })
+    .eq("workspace_id", workspace.id);
+
+  const { error: insertError } = await supabase.from("phone_numbers").insert({
+    workspace_id: workspace.id,
+    phone_number: purchased.phoneNumber,
+    friendly_name: friendlyName || null,
+    twilio_sid: purchased.sid,
+    country: "US",
+    status: "active",
+    is_default: (count ?? 0) === 0,
+  });
+
+  if (insertError) {
+    return {
+      error: `Number ${purchased.phoneNumber} was purchased on Twilio (SID ${purchased.sid}) but could not be saved: ${insertError.message}. Contact support rather than buying it again.`,
+    };
+  }
+
+  revalidatePath("/phone-numbers");
+  return { message: `Purchased ${purchased.phoneNumber}.` };
 }
 
 export async function addPhoneNumberAction(
