@@ -31,6 +31,11 @@ export class CallSession {
   private contact: ContactRecord | null;
   private finalized = false;
   private maxDurationTimer: NodeJS.Timeout | null = null;
+  // TEMPORARY diagnostic state for the "voice drops/misses words after
+  // about a minute" report - see the gap checks in handleTwilioMessage and
+  // the audioDelta handler below. Remove once the root cause is found.
+  private lastInboundMediaAt: number | null = null;
+  private lastOutboundDeltaAt: number | null = null;
 
   private constructor(twilioWs: WebSocket, state: CallSessionState, agent: AgentRecord, contact: ContactRecord | null) {
     this.twilioWs = twilioWs;
@@ -147,6 +152,21 @@ export class CallSession {
       // connection, and it's already consumed in index.ts to resolve callId
       // (via its customParameters) before this session even exists.
       case "media": {
+        // TEMPORARY: Twilio sends a media frame every ~20ms regardless of
+        // who's talking, so a gap here (vs. in the outbound OpenAI->Twilio
+        // delta stream) tells apart a Twilio->us problem from an OpenAI
+        // output or Twilio-playback problem. See the matching check on
+        // outbound audioDelta below. Remove once the voice-drop report is
+        // resolved.
+        const now = Date.now();
+        if (this.lastInboundMediaAt !== null) {
+          const gapMs = now - this.lastInboundMediaAt;
+          if (gapMs > 250) {
+            this.logEvent("inbound_audio_gap", { gapMs, msSinceCallStart: now - this.state.callStartedAt });
+          }
+        }
+        this.lastInboundMediaAt = now;
+
         const payload = (message as TwilioMediaMessage).media.payload;
         this.openai.appendAudio(payload);
         break;
@@ -204,16 +224,32 @@ export class CallSession {
 
     this.openai.on("firstAudioDelta", () => {
       this.state.agentSpeaking = true;
+      this.lastOutboundDeltaAt = Date.now();
       if (this.state.currentTurnLatency.callerSpeechEndedAt) {
         this.state.currentTurnLatency.firstAudioAt = Date.now();
       }
     });
 
     this.openai.on("audioDelta", (base64: string) => {
+      // TEMPORARY: a gap here, inside a single agent turn (between
+      // firstAudioDelta and audioDone), while the matching inbound check
+      // above stays clean, would point at OpenAI's own output stream or the
+      // Railway<->OpenAI leg rather than Twilio<->Railway. See that check's
+      // comment. Remove once the voice-drop report is resolved.
+      const now = Date.now();
+      if (this.lastOutboundDeltaAt !== null) {
+        const gapMs = now - this.lastOutboundDeltaAt;
+        if (gapMs > 250) {
+          this.logEvent("outbound_audio_gap", { gapMs, turn: this.state.currentTurn, msSinceCallStart: now - this.state.callStartedAt });
+        }
+      }
+      this.lastOutboundDeltaAt = now;
+
       this.sendTwilioMedia(base64);
     });
 
     this.openai.on("audioDone", () => {
+      this.lastOutboundDeltaAt = null;
       this.state.agentSpeaking = false;
       this.flushTurnLatency();
     });
