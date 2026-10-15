@@ -36,6 +36,10 @@ export class CallSession {
   // the audioDelta handler below. Remove once the root cause is found.
   private lastInboundMediaAt: number | null = null;
   private lastOutboundDeltaAt: number | null = null;
+  private maxInboundGapMs = 0;
+  private maxOutboundGapMs = 0;
+  private inboundFrameCount = 0;
+  private outboundFrameCount = 0;
 
   private constructor(twilioWs: WebSocket, state: CallSessionState, agent: AgentRecord, contact: ContactRecord | null) {
     this.twilioWs = twilioWs;
@@ -159,9 +163,11 @@ export class CallSession {
         // outbound audioDelta below. Remove once the voice-drop report is
         // resolved.
         const now = Date.now();
+        this.inboundFrameCount += 1;
         if (this.lastInboundMediaAt !== null) {
           const gapMs = now - this.lastInboundMediaAt;
-          if (gapMs > 250) {
+          if (gapMs > this.maxInboundGapMs) this.maxInboundGapMs = gapMs;
+          if (gapMs > 100) {
             this.logEvent("inbound_audio_gap", { gapMs, msSinceCallStart: now - this.state.callStartedAt });
           }
         }
@@ -237,9 +243,11 @@ export class CallSession {
       // Railway<->OpenAI leg rather than Twilio<->Railway. See that check's
       // comment. Remove once the voice-drop report is resolved.
       const now = Date.now();
+      this.outboundFrameCount += 1;
       if (this.lastOutboundDeltaAt !== null) {
         const gapMs = now - this.lastOutboundDeltaAt;
-        if (gapMs > 250) {
+        if (gapMs > this.maxOutboundGapMs) this.maxOutboundGapMs = gapMs;
+        if (gapMs > 100) {
           this.logEvent("outbound_audio_gap", { gapMs, turn: this.state.currentTurn, msSinceCallStart: now - this.state.callStartedAt });
         }
       }
@@ -363,6 +371,18 @@ export class CallSession {
     if (this.maxDurationTimer) clearTimeout(this.maxDurationTimer);
 
     const durationSeconds = Math.round((Date.now() - this.state.callStartedAt) / 1000);
+
+    // TEMPORARY: unconditional summary for the voice-drop diagnostic, even
+    // when nothing crossed the per-event threshold above - the actual max
+    // gap size and frame counts on each leg are useful either way. Remove
+    // once the root cause is found.
+    this.logEvent("audio_pipeline_summary", {
+      durationSeconds,
+      maxInboundGapMs: this.maxInboundGapMs,
+      maxOutboundGapMs: this.maxOutboundGapMs,
+      inboundFrameCount: this.inboundFrameCount,
+      outboundFrameCount: this.outboundFrameCount,
+    });
 
     try {
       this.openai.close();
