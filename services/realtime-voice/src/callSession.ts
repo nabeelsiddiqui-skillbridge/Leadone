@@ -40,6 +40,10 @@ export class CallSession {
   private maxOutboundGapMs = 0;
   private inboundFrameCount = 0;
   private outboundFrameCount = 0;
+  // State for suppressing echo/noise-triggered "phantom" turns - see
+  // speechStarted/speechStopped below.
+  private speechStartedAt: number | null = null;
+  private lastAudioDoneAt: number | null = null;
 
   private constructor(twilioWs: WebSocket, state: CallSessionState, agent: AgentRecord, contact: ContactRecord | null) {
     this.twilioWs = twilioWs;
@@ -206,6 +210,7 @@ export class CallSession {
 
     this.openai.on("speechStarted", () => {
       this.state.callerSpeaking = true;
+      this.speechStartedAt = Date.now();
       if (this.state.agentSpeaking && this.agent.interruptions_enabled) {
         // Barge-in: stop the model and flush whatever audio Twilio has queued.
         // TEMPORARY diagnostic logging - live reports of the agent's voice
@@ -225,7 +230,50 @@ export class CallSession {
 
     this.openai.on("speechStopped", () => {
       this.state.callerSpeaking = false;
-      this.state.currentTurnLatency.callerSpeechEndedAt = Date.now();
+      const now = Date.now();
+      this.state.currentTurnLatency.callerSpeechEndedAt = now;
+
+      // Server-side VAD (turn_detection.create_response, left at its
+      // default of true) auto-generates a response for every detected
+      // speech_started->speech_stopped cycle, including ones that aren't
+      // real caller speech at all - a brief echo of the agent's own voice
+      // bleeding back through the line, or line noise, right after it
+      // finishes talking. That produces a real but UNPROMPTED model
+      // response with no actual caller input behind it, which the model
+      // fills with a plausible-sounding continuation or repeated question -
+      // live report confirmed this exact pattern (repeated/back-to-back
+      // agent turns, caller said "you're answering your own question"),
+      // and three call_events-logged barge_in checks across multiple test
+      // calls ruled out genuine mid-speech self-interruption as the cause,
+      // meaning this is happening *between* turns instead, which the
+      // barge-in logic above never sees (agentSpeaking is already false by
+      // then, nothing to interrupt). A short burst (caller "speech" under
+      // 300ms) arriving soon after the agent stopped (within 1.5s) is far
+      // more consistent with echo/noise than a real reply - genuine replies
+      // essentially never land in that exact window. Cancel the response
+      // before it plays rather than letting the model invent one from
+      // nothing. Logged either way so this can be verified against real
+      // call data instead of assumed.
+      const speechDurationMs = this.speechStartedAt !== null ? now - this.speechStartedAt : null;
+      const msSinceAgentStopped = this.lastAudioDoneAt !== null ? now - this.lastAudioDoneAt : null;
+      const looksLikeEcho =
+        speechDurationMs !== null && speechDurationMs < 300 &&
+        msSinceAgentStopped !== null && msSinceAgentStopped < 1500;
+
+      if (looksLikeEcho) {
+        this.logEvent("suppressed_phantom_turn", {
+          speechDurationMs,
+          msSinceAgentStopped,
+          msSinceCallStart: now - this.state.callStartedAt,
+        });
+        // Mirrors the barge-in cleanup below: cancel before the model's
+        // response plays, and flush anything Twilio already queued in case
+        // a sliver of audio went out before the cancel took effect.
+        this.openai.cancelResponse();
+        this.sendTwilioClear();
+        this.state.agentSpeaking = false;
+      }
+      this.speechStartedAt = null;
     });
 
     this.openai.on("firstAudioDelta", () => {
@@ -258,6 +306,7 @@ export class CallSession {
 
     this.openai.on("audioDone", () => {
       this.lastOutboundDeltaAt = null;
+      this.lastAudioDoneAt = Date.now();
       this.state.agentSpeaking = false;
       this.flushTurnLatency();
     });
